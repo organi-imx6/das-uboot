@@ -10,6 +10,9 @@ config ARM64
 choice
 	prompt "Target select"
 
+config TARGET_WISEHMI
+	bool "Support autorock wisehmi"
+
 config TARGET_INTEGRATORAP_CM720T
 	bool "Support integratorap_cm720t"
 
@@ -698,5 +701,6 @@ source "board/wandboard/Kconfig"
 source "board/woodburn/Kconfig"
 source "board/xaeniax/Kconfig"
 source "board/zipitz2/Kconfig"
+source "board/autorock/wisehmi/Kconfig"
 
 endmenu
