@@ -111,8 +111,20 @@ static void setup_spi(void)
 }
 #endif
 
+static iomux_v3_cfg_t const port_phyrst[] = {
+	MX6_PAD_EIM_EB3__GPIO2_IO31		| MUX_PAD_CTRL(NO_PAD_CTRL),
+};
+
 int board_eth_init(bd_t *bis)
 {
+	// phy reset pin
+	imx_iomux_v3_setup_multiple_pads(port_phyrst, ARRAY_SIZE(port_phyrst));
+
+	// hard reset phy
+	gpio_direction_output(IMX_GPIO_NR(2, 31), 0);
+	mdelay(1);
+	gpio_set_value(IMX_GPIO_NR(2, 31), 1);
+
 	setup_iomux_enet();
 
 	return cpu_eth_init(bis);

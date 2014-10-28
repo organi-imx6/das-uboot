@@ -10,7 +10,7 @@
 #define CONFIG_DEFAULT_FDT_FILE	"imx6dl-wisehmi.dtb"
 #endif
 #define CONFIG_MMCROOT			"/dev/mmcblk0p2"
-#define PHYS_SDRAM_SIZE		(2u * 1024 * 1024 * 1024)
+#define PHYS_SDRAM_SIZE		(1u * 1024 * 1024 * 1024)
 
 /* USB Configs */
 #define CONFIG_CMD_USB
