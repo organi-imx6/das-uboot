@@ -45,16 +45,22 @@ static iomux_v3_cfg_t const uart4_pads[] = {
 };
 
 static iomux_v3_cfg_t const enet_pads[] = {
+	// RMII
 	MX6_PAD_ENET_MDIO__ENET_MDIO      | MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_ENET_MDC__ENET_MDC        | MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_ENET_CRS_DV__ENET_RX_EN   | MUX_PAD_CTRL(ENET_PAD_CTRL),
-	MX6_PAD_ENET_REF_CLK__ENET_TX_CLK | MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_ENET_RX_ER__ENET_RX_ER    | MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_ENET_TX_EN__ENET_TX_EN    | MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_ENET_RXD0__ENET_RX_DATA0  | MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_ENET_RXD1__ENET_RX_DATA1  | MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_ENET_TXD0__ENET_TX_DATA0  | MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_ENET_TXD1__ENET_TX_DATA1  | MUX_PAD_CTRL(ENET_PAD_CTRL),
+	// reset
+	MX6_PAD_EIM_EB3__GPIO2_IO31       | MUX_PAD_CTRL(NO_PAD_CTRL),
+	// interrupt
+	MX6_PAD_ENET_REF_CLK__GPIO1_IO23  | MUX_PAD_CTRL(NO_PAD_CTRL),
+	// reference clock
+	MX6_PAD_GPIO_16__ENET_REF_CLK     | MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 
 static void setup_iomux_enet(void)
@@ -111,21 +117,26 @@ static void setup_spi(void)
 }
 #endif
 
-static iomux_v3_cfg_t const port_phyrst[] = {
-	MX6_PAD_EIM_EB3__GPIO2_IO31		| MUX_PAD_CTRL(NO_PAD_CTRL),
-};
-
 int board_eth_init(bd_t *bis)
 {
-	// phy reset pin
-	imx_iomux_v3_setup_multiple_pads(port_phyrst, ARRAY_SIZE(port_phyrst));
+	struct iomuxc *const iomuxc_regs = (struct iomuxc *)IOMUXC_BASE_ADDR;
+
+	int ret = enable_fec_anatop_clock(ENET_50MHz);
+	if (ret)
+		return ret;
+
+	// get enet tx reference clk from internal clock from anatop
+	setbits_le32(&iomuxc_regs->gpr[1], IOMUXC_GPR1_ENET_CLK_SEL_MASK);
+
+	setup_iomux_enet();
+
+	// set interrupt GPIO
+	gpio_direction_input(IMX_GPIO_NR(1, 23));
 
 	// hard reset phy
 	gpio_direction_output(IMX_GPIO_NR(2, 31), 0);
 	mdelay(1);
 	gpio_set_value(IMX_GPIO_NR(2, 31), 1);
-
-	setup_iomux_enet();
 
 	return cpu_eth_init(bis);
 }
