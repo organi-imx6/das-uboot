@@ -85,6 +85,7 @@
 
 #define CONFIG_CMD_SF
 #ifdef CONFIG_CMD_SF
+#define CONFIG_SPI
 #define CONFIG_SPI_FLASH
 #define CONFIG_SPI_FLASH_STMICRO
 #define CONFIG_MXC_SPI
