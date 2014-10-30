@@ -95,6 +95,20 @@
 #define CONFIG_SF_DEFAULT_MODE		SPI_MODE_0
 #endif
 
+#define CONFIG_CMD_NAND
+#ifdef CONFIG_CMD_NAND
+#define CONFIG_NAND_MXS
+#define CONFIG_SYS_MAX_NAND_DEVICE	1
+#define CONFIG_SYS_NAND_BASE		0x40000000
+#define CONFIG_SYS_NAND_5_ADDR_CYCLE
+#define CONFIG_SYS_NAND_ONFI_DETECTION
+
+/* DMA stuff, needed for GPMI/MXS NAND support */
+#define CONFIG_APBH_DMA
+#define CONFIG_APBH_DMA_BURST
+#define CONFIG_APBH_DMA_BURST8
+#endif
+
 /* allow to overwrite serial and ethaddr */
 #define CONFIG_ENV_OVERWRITE
 #define CONFIG_CONS_INDEX              1
