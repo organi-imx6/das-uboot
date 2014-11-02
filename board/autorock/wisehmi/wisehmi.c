@@ -97,8 +97,9 @@ int board_mmc_getcd(struct mmc *mmc)
 int board_mmc_init(bd_t *bis)
 {
 	imx_iomux_v3_setup_multiple_pads(usdhc2_pads, ARRAY_SIZE(usdhc2_pads));
-
+	enable_usdhc_clk(1, 2);
 	usdhc_cfg[0].sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
+	usdhc_cfg[0].max_bus_width = 4;
 	return fsl_esdhc_initialize(bis, &usdhc_cfg[0]);
 }
 #endif
@@ -154,22 +155,14 @@ static void setup_gpmi_nand(void)
 	/* config gpmi nand iomux */
 	imx_iomux_v3_setup_multiple_pads(nfc_pads, ARRAY_SIZE(nfc_pads));
 
-	/* config gpmi and bch clock to 100 MHz */
-	clrsetbits_le32(&mxc_ccm->cs2cdr,
-			MXC_CCM_CS2CDR_ENFC_CLK_PODF_MASK |
-			MXC_CCM_CS2CDR_ENFC_CLK_PRED_MASK |
-			MXC_CCM_CS2CDR_ENFC_CLK_SEL_MASK,
-			MXC_CCM_CS2CDR_ENFC_CLK_PODF(0) |
-			MXC_CCM_CS2CDR_ENFC_CLK_PRED(3) |
-			MXC_CCM_CS2CDR_ENFC_CLK_SEL(3));
+	/* Enable clock roots */
+	enable_usdhc_clk(1, 3);
+	enable_usdhc_clk(1, 4);
 
-	/* enable gpmi and bch clock gating */
-	setbits_le32(&mxc_ccm->CCGR4,
-		     MXC_CCM_CCGR4_RAWNAND_U_BCH_INPUT_APB_MASK |
-		     MXC_CCM_CCGR4_RAWNAND_U_GPMI_BCH_INPUT_BCH_MASK |
-		     MXC_CCM_CCGR4_RAWNAND_U_GPMI_BCH_INPUT_GPMI_IO_MASK |
-		     MXC_CCM_CCGR4_RAWNAND_U_GPMI_INPUT_APB_MASK |
-		     MXC_CCM_CCGR4_PL301_MX6QPER1_BCH_OFFSET);
+	// GPMICLK select PLL2 307M, divided by 1 x 16 = 19.18M
+	setup_gpmi_io_clk(MXC_CCM_CS2CDR_ENFC_CLK_PODF(0xf) |
+			  MXC_CCM_CS2CDR_ENFC_CLK_PRED(1)   |
+			  MXC_CCM_CS2CDR_ENFC_CLK_SEL(0));
 
 	/* enable apbh clock gating */
 	setbits_le32(&mxc_ccm->CCGR0, MXC_CCM_CCGR0_APBHDMA_MASK);
@@ -196,6 +189,9 @@ int board_eth_init(bd_t *bis)
 	gpio_direction_output(IMX_GPIO_NR(2, 31), 0);
 	mdelay(1);
 	gpio_set_value(IMX_GPIO_NR(2, 31), 1);
+
+	// enable clock
+	enable_enet_clk(1);
 
 	return cpu_eth_init(bis);
 }
