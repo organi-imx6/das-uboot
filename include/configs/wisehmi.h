@@ -13,6 +13,7 @@
 #define CONFIG_MMCROOT			"/dev/mmcblk0p2"
 #define PHYS_SDRAM_SIZE		(1u * 1024 * 1024 * 1024)
 
+#ifndef CONFIG_SPL_BUILD
 /* USB Configs */
 #define CONFIG_CMD_USB
 #define CONFIG_USB_EHCI
@@ -25,6 +26,13 @@
 #define CONFIG_MXC_USB_PORTSC	(PORT_PTS_UTMI | PORT_PTS_PTW)
 #define CONFIG_MXC_USB_FLAGS	0
 
+/* I2C Configs */
+#define CONFIG_CMD_I2C
+#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_MXC
+#define CONFIG_SYS_I2C_SPEED		100000
+#endif
+
 #ifdef CONFIG_SPL
 #define CONFIG_SPL_MMC_SUPPORT
 #define CONFIG_SPL_FAT_SUPPORT
@@ -36,11 +44,5 @@
 #if defined(CONFIG_ENV_IS_IN_MMC)
 #define CONFIG_SYS_MMC_ENV_DEV		0
 #endif
-
-/* I2C Configs */
-#define CONFIG_CMD_I2C
-#define CONFIG_SYS_I2C
-#define CONFIG_SYS_I2C_MXC
-#define CONFIG_SYS_I2C_SPEED		100000
 
 #endif /* __WISEHMI_CONFIG_H */

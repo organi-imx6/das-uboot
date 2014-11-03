@@ -24,7 +24,6 @@
 
 #define CONFIG_BOARD_EARLY_INIT_F
 #define CONFIG_BOARD_LATE_INIT
-#define CONFIG_MXC_GPIO
 
 #define CONFIG_MXC_UART
 
@@ -41,7 +40,6 @@
 #define CONFIG_MMC
 #define CONFIG_CMD_MMC
 #define CONFIG_GENERIC_MMC
-#define CONFIG_BOUNCE_BUFFER
 #define CONFIG_CMD_EXT2
 #define CONFIG_CMD_FAT
 #define CONFIG_DOS_PARTITION
@@ -97,7 +95,6 @@
 /* Command definition */
 #include <config_cmd_default.h>
 
-#define CONFIG_CMD_BMODE
 #define CONFIG_CMD_BOOTZ
 #define CONFIG_CMD_SETEXPR
 #undef CONFIG_CMD_IMLS
@@ -214,10 +211,14 @@
 #define CONFIG_ENV_OFFSET		(6 * 64 * 1024)
 #endif
 
-#define CONFIG_OF_LIBFDT
-
 #ifndef CONFIG_SYS_DCACHE_OFF
 #define CONFIG_CMD_CACHE
+#endif
+
+#ifndef CONFIG_SPL_BUILD
+#define CONFIG_OF_LIBFDT
+#define CONFIG_MXC_GPIO
+#define CONFIG_CMD_BMODE
 #endif
 
 /* SPL */
