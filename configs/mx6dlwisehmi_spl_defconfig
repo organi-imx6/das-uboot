@@ -1,3 +1,0 @@
-CONFIG_SPL=y
-CONFIG_SYS_EXTRA_OPTIONS="IMX_CONFIG=board/autorock/wisehmi/mx6dl.cfg,MX6DL"
-+S:CONFIG_ARM=y

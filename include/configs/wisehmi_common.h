@@ -1,6 +1,17 @@
 #ifndef __WISEHMI_COMMON_CONFIG_H
 #define __WISEHMI_COMMON_CONFIG_H
 
+#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_BOOT_MMC
+#define CONFIG_SPL_MMC_SUPPORT
+#define CONFIG_SPL_FAT_SUPPORT
+#endif
+
+#ifdef CONFIG_BOOT_NAND
+#define CONFIG_SPL_NAND_SUPPORT
+#endif
+#endif
+
 #define CONFIG_MX6
 
 #include "mx6_common.h"
@@ -145,11 +156,41 @@
 	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
 	"mmcboot=run mmcargs && bootm ${loadaddr} - ${fdt_addr}\0" \
+    \
 	"netargs=setenv bootargs console=${console},${baudrate} root=/dev/nfs rw " \
 		"ip=${ipaddr}:${serverip}:${gateway}:${netmask}:wisehmi:eth0:off " \
 	    "nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
 	"netboot=run netargs && tftp ${image} && tftp ${fdt_addr} ${fdt_file} && " \
-		"bootm ${loadaddr} - ${fdt_addr}\0"
+		"bootm ${loadaddr} - ${fdt_addr}\0" \
+	\
+	"mtdids=nand0=gpmi-nand\0" \
+    "mtdparts=mtdparts=gpmi-nand:128k(spl),768k(uboot),384k(env)," \
+        "384k(dtb),7680k(kernel),-(rootfs)\0" \
+    \
+	"fl_spl=nand erase.part spl && nand write ${loadaddr} spl ${filesize}\0" \
+	"fl_uboot=nand erase.part uboot && nand write ${loadaddr} uboot ${filesize}\0" \
+    "fl_env=nand erase.part env && nand write ${loadaddr} env ${filesize}\0" \
+	"fl_dtb=nand erase.part dtb && nand write ${loadaddr} dtb ${filesize}\0" \
+	"fl_kernel=nand erase.part kernel && nand write ${loadaddr} kernel ${filesize}\0" \
+    "fl_rootfs=nand erase.part rootfs && " \
+	"  ubi part rootfs && " \
+	"  ubi create rootfs && " \
+	"  ubi write ${loadaddr} rootfs ${filesize}\0" \
+	\
+    "tf_spl=tftp ${loadaddr} SPL && run fl_spl\0" \
+	"tf_uboot=tftp ${loadaddr} u-boot.bin && run fl_uboot\0" \
+	"tf_env=tftp ${loadaddr} wisehmi.env && run fl_env\0" \
+	"tf_dtb=tftp ${loadaddr} ${fdt_file} && run fl_dtb\0" \
+	"tf_kernel=tftp ${loadaddr} ${image} && run fl_kernel\0" \
+	"tf_rootfs=tftp ${loadaddr} rootfs.img && run fl_rootfs\0" \
+    \
+	"mf_spl=fatload mmc 0 ${loadaddr} SPL && run fl_spl\0" \
+	"mf_uboot=fatload mmc 0 ${loadaddr} u-boot.bin && run fl_uboot\0" \
+	"mf_env=fatload mmc 0 ${loadaddr} wisehmi.env && run fl_env\0" \
+	"mf_dtb=fatload mmc 0 ${loadaddr} ${fdt_file} && run fl_dtb\0" \
+	"mf_kernel=fatload mmc 0 ${loadaddr} ${image} && run fl_kernel\0" \
+	"mf_rootfs=fatload mmc 0 ${loadaddr} rootfs.img && run fl_rootfs\0" \
+	"mf_all=run mf_spl && run mf_uboot && run mf_dtb && run mf_kernel && run mf_rootfs\0"
 
 #define CONFIG_BOOTCOMMAND \
 	"mmc dev ${mmcdev};" \
@@ -234,12 +275,19 @@
 #if defined(CONFIG_SPL_MMC_SUPPORT)
 #define CONFIG_SYS_MMCSD_RAW_MODE_KERNEL_SECTOR	4096  /* offset 2M */
 #define CONFIG_SYS_MMCSD_RAW_MODE_ARGS_SECTOR	2048  /* offset 1M */
-#define CONFIG_SYS_MMCSD_RAW_MODE_ARGS_SECTORS	80    /* 40KB */
+#define CONFIG_SYS_MMCSD_RAW_MODE_ARGS_SECTORS	(CONFIG_FDT_FILE_SIZE/512)
 #endif
 
 #if defined(CONFIG_SPL_FAT_SUPPORT) || defined(CONFIG_SPL_EXT_SUPPORT)
 #define CONFIG_SPL_FAT_LOAD_KERNEL_NAME CONFIG_DEFAULT_KERNEL_FILE
 #define CONFIG_SPL_FAT_LOAD_ARGS_NAME   CONFIG_DEFAULT_FDT_FILE
+#endif
+
+#if defined(CONFIG_SPL_NAND_SUPPORT)
+#define CONFIG_CMD_SPL_NAND_OFS         (10 * 128 * 1024)
+#define CONFIG_CMD_SPL_WRITE_SIZE       CONFIG_FDT_FILE_SIZE
+#define CONFIG_SYS_NAND_SPL_KERNEL_OFFS (13 * 128 * 1024)
+#define CONFIG_SYS_NAND_U_BOOT_OFFS     (1 * 128 * 1024)
 #endif
 
 #endif /* CONFIG_SPL */
