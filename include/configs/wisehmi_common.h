@@ -83,6 +83,8 @@
 
 #define CONFIG_CMD_NAND
 #ifdef CONFIG_CMD_NAND
+#define CONFIG_MTD_DEVICE
+#define CONFIG_CMD_MTDPARTS
 #define CONFIG_NAND_MXS
 #define CONFIG_SYS_MAX_NAND_DEVICE	1
 #define CONFIG_SYS_NAND_BASE		0x40000000
@@ -167,7 +169,8 @@
     "mtdparts=mtdparts=gpmi-nand:128k(spl),768k(uboot),384k(env)," \
         "384k(dtb),7680k(kernel),-(rootfs)\0" \
     \
-	"fl_spl=nand erase.part spl && nand write ${loadaddr} spl ${filesize}\0" \
+	"fl_spl=mw.b ${loadaddr} 0xff 0x400 && setexpr tmpvar ${filesize} + 0x400 && " \
+        "nand erase.part spl && nand write ${loadaddr} 0 ${tmpvar}\0" \
 	"fl_uboot=nand erase.part uboot && nand write ${loadaddr} uboot ${filesize}\0" \
     "fl_env=nand erase.part env && nand write ${loadaddr} env ${filesize}\0" \
 	"fl_dtb=nand erase.part dtb && nand write ${loadaddr} dtb ${filesize}\0" \
@@ -177,7 +180,7 @@
 	"  ubi create rootfs && " \
 	"  ubi write ${loadaddr} rootfs ${filesize}\0" \
 	\
-    "tf_spl=tftp ${loadaddr} SPL && run fl_spl\0" \
+    "tf_spl=setexpr tmpvar ${loadaddr} + 0x400 && tftp ${tmpvar} SPL && run fl_spl\0" \
 	"tf_uboot=tftp ${loadaddr} u-boot.bin && run fl_uboot\0" \
 	"tf_env=tftp ${loadaddr} wisehmi.env && run fl_env\0" \
 	"tf_dtb=tftp ${loadaddr} ${fdt_file} && run fl_dtb\0" \
@@ -190,7 +193,10 @@
 	"mf_dtb=fatload mmc 0 ${loadaddr} ${fdt_file} && run fl_dtb\0" \
 	"mf_kernel=fatload mmc 0 ${loadaddr} ${image} && run fl_kernel\0" \
 	"mf_rootfs=fatload mmc 0 ${loadaddr} rootfs.img && run fl_rootfs\0" \
-	"mf_all=run mf_spl && run mf_uboot && run mf_dtb && run mf_kernel && run mf_rootfs\0"
+	"mf_all=run mf_spl && run mf_uboot && run mf_dtb && run mf_kernel && run mf_rootfs\0" \
+	\
+	"burn_sf=tftp ${sffile} && sf probe && setexpr tmpvar ${filesize} + 0x400 && " \
+        "sf erase 0 +${tmpvar} && sf write ${loadaddr} 0x400 ${filesize}\0"
 
 #define CONFIG_BOOTCOMMAND \
 	"mmc dev ${mmcdev};" \
