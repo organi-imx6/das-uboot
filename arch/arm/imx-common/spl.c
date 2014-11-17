@@ -38,7 +38,13 @@ u32 spl_boot_device(void)
 		/* BOOT_CFG4[2:0] */
 		switch ((reg & 0x07000000) >> 24) {
 		case 0x0 ... 0x4:
+#ifdef CONFIG_SPL_MMC_SUPPORT
+			return BOOT_DEVICE_MMC1;
+#elif CONFIG_SPL_NAND_SUPPORT
+			return BOOT_DEVICE_NAND;
+#else
 			return BOOT_DEVICE_SPI;
+#endif
 		case 0x5 ... 0x7:
 			return BOOT_DEVICE_I2C;
 		}

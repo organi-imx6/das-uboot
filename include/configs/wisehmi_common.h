@@ -195,6 +195,7 @@
 	"mf_rootfs=fatload mmc 0 ${loadaddr} rootfs.img && run fl_rootfs\0" \
 	"mf_all=run mf_spl && run mf_uboot && run mf_dtb && run mf_kernel && run mf_rootfs\0" \
 	\
+	"sffile=SPL\0" \
 	"burn_sf=tftp ${sffile} && sf probe && setexpr tmpvar ${filesize} + 0x400 && " \
         "sf erase 0 +${tmpvar} && sf write ${loadaddr} 0x400 ${filesize}\0"
 
@@ -273,7 +274,7 @@
 
 #include "imx6_spl.h"
 
-#define CONFIG_SYS_SPL_ARGS_ADDR        CONFIG_SYS_SDRAM_BASE + 0x100
+#define CONFIG_SYS_SPL_ARGS_ADDR        CONFIG_SYS_SDRAM_BASE + 0x2000000
 
 #define CONFIG_SPL_OS_BOOT
 #define CONFIG_SPL_BOARD_INIT
