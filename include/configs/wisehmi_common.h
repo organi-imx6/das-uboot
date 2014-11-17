@@ -181,14 +181,14 @@
 	"  ubi write ${loadaddr} rootfs ${filesize}\0" \
 	\
     "tf_spl=setexpr tmpvar ${loadaddr} + 0x400 && tftp ${tmpvar} SPL && run fl_spl\0" \
-	"tf_uboot=tftp ${loadaddr} u-boot.bin && run fl_uboot\0" \
+	"tf_uboot=tftp ${loadaddr} u-boot.img && run fl_uboot\0" \
 	"tf_env=tftp ${loadaddr} wisehmi.env && run fl_env\0" \
 	"tf_dtb=tftp ${loadaddr} ${fdt_file} && run fl_dtb\0" \
 	"tf_kernel=tftp ${loadaddr} ${image} && run fl_kernel\0" \
 	"tf_rootfs=tftp ${loadaddr} rootfs.img && run fl_rootfs\0" \
     \
 	"mf_spl=fatload mmc 0 ${loadaddr} SPL && run fl_spl\0" \
-	"mf_uboot=fatload mmc 0 ${loadaddr} u-boot.bin && run fl_uboot\0" \
+	"mf_uboot=fatload mmc 0 ${loadaddr} u-boot.img && run fl_uboot\0" \
 	"mf_env=fatload mmc 0 ${loadaddr} wisehmi.env && run fl_env\0" \
 	"mf_dtb=fatload mmc 0 ${loadaddr} ${fdt_file} && run fl_dtb\0" \
 	"mf_kernel=fatload mmc 0 ${loadaddr} ${image} && run fl_kernel\0" \
