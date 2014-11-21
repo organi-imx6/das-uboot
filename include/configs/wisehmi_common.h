@@ -1,15 +1,30 @@
 #ifndef __WISEHMI_COMMON_CONFIG_H
 #define __WISEHMI_COMMON_CONFIG_H
 
-#ifdef CONFIG_SPL_BUILD
 #ifdef CONFIG_BOOT_MMC
+#define CONFIG_ENV_IS_IN_MMC
+#define CONFIG_SYS_MMC_ENV_DEV	0
+#define CONFIG_ENV_OFFSET       (6 * 64 * 1024)
+#ifdef CONFIG_SPL_BUILD
 #define CONFIG_SPL_MMC_SUPPORT
 #define CONFIG_SPL_FAT_SUPPORT
 #endif
+#endif
 
 #ifdef CONFIG_BOOT_NAND
+#define CONFIG_ENV_IS_IN_NAND
+#define CONFIG_ENV_OFFSET       (7 * 128 * 1024)
+#define CONFIG_ENV_RANGE        (3 * 128 * 1024)
+#ifdef CONFIG_SPL_BUILD
 #define CONFIG_SPL_NAND_SUPPORT
 #endif
+#endif
+
+#if !defined CONFIG_ENV_IS_IN_MMC && \
+    !defined CONFIG_ENV_IS_IN_NAND && \
+    !defined CONFIG_ENV_IS_IN_FAT && \
+    !defined CONFIG_ENV_IS_IN_SPI_FLASH
+#define CONFIG_ENV_IS_NOWHERE
 #endif
 
 #define CONFIG_MX6
@@ -46,7 +61,8 @@
 /* MMC Configs */
 #define CONFIG_FSL_ESDHC
 #define CONFIG_FSL_USDHC
-#define CONFIG_SYS_FSL_ESDHC_ADDR      USDHC2_BASE_ADDR
+#define CONFIG_SYS_FSL_ESDHC_ADDR  USDHC2_BASE_ADDR
+#define CONFIG_SYS_FSL_USDHC_NUM   1
 
 #define CONFIG_MMC
 #define CONFIG_CMD_MMC
@@ -150,7 +166,7 @@
 	"serverip=172.10.11.15\0" \
 	"nfsroot=/home/yuq/tmp/rootfs\0" \
 	"console=" CONFIG_CONSOLE_DEV "\0" \
-	"mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV) "\0" \
+	"mmcdev=0\0" \
 	"mmcpart=1\0" \
 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 	EMMC_ENV \
@@ -252,12 +268,6 @@
 #define CONFIG_SYS_NO_FLASH
 
 #define CONFIG_ENV_SIZE			(8 * 1024)
-
-#define CONFIG_ENV_IS_IN_MMC
-
-#if defined(CONFIG_ENV_IS_IN_MMC)
-#define CONFIG_ENV_OFFSET		(6 * 64 * 1024)
-#endif
 
 #ifndef CONFIG_SYS_DCACHE_OFF
 #define CONFIG_CMD_CACHE
