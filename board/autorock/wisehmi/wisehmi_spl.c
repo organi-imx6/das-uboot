@@ -35,8 +35,9 @@ int board_early_init_f(void)
 
 #ifdef CONFIG_SPL_MMC_SUPPORT
 
-struct fsl_esdhc_cfg usdhc_cfg[1] = {
+struct fsl_esdhc_cfg usdhc_cfg[2] = {
 	{USDHC2_BASE_ADDR},
+	{USDHC3_BASE_ADDR},
 };
 
 static iomux_v3_cfg_t const usdhc2_pads[] = {
@@ -48,6 +49,19 @@ static iomux_v3_cfg_t const usdhc2_pads[] = {
 	MX6_PAD_SD2_DAT3__SD2_DATA3 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 };
 
+static iomux_v3_cfg_t const usdhc3_pads[] = {
+	MX6_PAD_SD3_CLK__SD3_CLK   | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_SD3_CMD__SD3_CMD   | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_SD3_DAT0__SD3_DATA0 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_SD3_DAT1__SD3_DATA1 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_SD3_DAT2__SD3_DATA2 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_SD3_DAT3__SD3_DATA3 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_SD3_DAT4__SD3_DATA4 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_SD3_DAT5__SD3_DATA5 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_SD3_DAT6__SD3_DATA6 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+	MX6_PAD_SD3_DAT7__SD3_DATA7 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
+};
+
 int board_mmc_getcd(struct mmc *mmc)
 {
 	return 1;
@@ -55,11 +69,23 @@ int board_mmc_getcd(struct mmc *mmc)
 
 int board_mmc_init(bd_t *bis)
 {
-	imx_iomux_v3_setup_multiple_pads(usdhc2_pads, ARRAY_SIZE(usdhc2_pads));
-	enable_usdhc_clk(1, 2);
-	usdhc_cfg[0].sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
-	usdhc_cfg[0].max_bus_width = 4;
-	return fsl_esdhc_initialize(bis, &usdhc_cfg[0]);
+	int device = spl_boot_device();
+	switch (device) {
+	case BOOT_DEVICE_MMC1:
+		imx_iomux_v3_setup_multiple_pads(usdhc2_pads, ARRAY_SIZE(usdhc2_pads));
+		enable_usdhc_clk(1, 2);
+		usdhc_cfg[0].sdhc_clk = mxc_get_clock(MXC_ESDHC2_CLK);
+		usdhc_cfg[0].max_bus_width = 4;
+		return fsl_esdhc_initialize(bis, &usdhc_cfg[0]);
+	case BOOT_DEVICE_MMC2:
+		imx_iomux_v3_setup_multiple_pads(usdhc3_pads, ARRAY_SIZE(usdhc3_pads));
+		enable_usdhc_clk(1, 3);
+		usdhc_cfg[1].sdhc_clk = mxc_get_clock(MXC_ESDHC3_CLK);
+		usdhc_cfg[1].max_bus_width = 8;
+		return fsl_esdhc_initialize(bis, &usdhc_cfg[1]);
+	default:
+		return -1;
+	}
 }
 
 #endif /* CONFIG_SPL_MMC_SUPPORT */

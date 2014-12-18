@@ -56,7 +56,7 @@ u32 spl_boot_device(void)
 	/* MMC/eMMC: 8.5.3 */
 	case 0x6:
 	case 0x7:
-		return BOOT_DEVICE_MMC1;
+		return BOOT_DEVICE_MMC2;
 	/* NAND Flash: 8.5.2 */
 	case 0x8 ... 0xf:
 		return BOOT_DEVICE_NAND;
