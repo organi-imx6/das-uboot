@@ -116,6 +116,11 @@ defaults:
 		return -1;
 	}
 
+#ifdef CONFIG_SPL_LOAD_SPLASH
+	// try to load splash if exist
+	file_fat_read(CONFIG_SPL_FAT_LOAD_SPLASH_NAME, (void *)CONFIG_SYS_SPL_SPLASH_ADDR, 0);
+#endif
+
 	return spl_load_image_fat(block_dev, partition,
 			CONFIG_SPL_FAT_LOAD_KERNEL_NAME);
 }
