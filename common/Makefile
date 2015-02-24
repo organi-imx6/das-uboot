@@ -216,6 +216,7 @@ obj-$(CONFIG_CMD_GPT) += cmd_gpt.o
 endif
 
 ifdef CONFIG_SPL_BUILD
+obj-$(CONFIG_OF_LIBFDT) += fdt_support.o
 obj-$(CONFIG_ENV_IS_IN_FLASH) += env_flash.o
 obj-$(CONFIG_SPL_YMODEM_SUPPORT) += xyzModem.o
 obj-$(CONFIG_SPL_NET_SUPPORT) += miiphyutil.o

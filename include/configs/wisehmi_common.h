@@ -136,7 +136,9 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"image=" CONFIG_DEFAULT_KERNEL_FILE "\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
+	"initrd_file=" CONFIG_DEFAULT_INITRD_FILE "\0" \
 	"fdt_addr=0x18000000\0" \
+	"initrd_addr=0x13800000\0" \
 	"ethaddr=11:12:13:14:15:16\0" \
 	"ipaddr=172.10.11.190\0" \
 	"gateway=172.10.0.1\0" \
@@ -150,6 +152,7 @@
 	"mmcargs=setenv bootargs console=${console},${baudrate} root=${mmcroot}\0" \
 	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
+	"loadinitrd=fatload mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file} && setenv initrd_filesize ${filesize}\0" \
 	"mmcboot=run mmcargs && bootm ${loadaddr} - ${fdt_addr}\0" \
     \
 	"netargs=setenv bootargs console=${console},${baudrate} root=/dev/nfs rw " \
@@ -250,8 +253,9 @@
 #define CONFIG_CMD_CACHE
 #endif
 
-#ifndef CONFIG_SPL_BUILD
 #define CONFIG_OF_LIBFDT
+
+#ifndef CONFIG_SPL_BUILD
 #define CONFIG_MXC_GPIO
 #define CONFIG_CMD_BMODE
 #endif
@@ -266,6 +270,8 @@
 #define CONFIG_SPL_LOAD_SPLASH
 #define CONFIG_SYS_SPL_SPLASH_ADDR      CONFIG_SYS_SDRAM_BASE + 0x3000000
 
+#define CONFIG_SYS_SPL_INITRD_ADDR      (CONFIG_SYS_SDRAM_BASE + 0x3800000)
+
 #define CONFIG_SPL_OS_BOOT
 #define CONFIG_SPL_BOARD_INIT
 
@@ -279,6 +285,7 @@
 #define CONFIG_SPL_FAT_LOAD_KERNEL_NAME CONFIG_DEFAULT_KERNEL_FILE
 #define CONFIG_SPL_FAT_LOAD_ARGS_NAME   CONFIG_DEFAULT_FDT_FILE
 #define CONFIG_SPL_FAT_LOAD_SPLASH_NAME CONFIG_DEFAULT_SPLASH_FILE
+#define CONFIG_SPL_FAT_LOAD_INITRD_NAME CONFIG_DEFAULT_INITRD_FILE
 #endif
 
 #if defined(CONFIG_SPL_NAND_SUPPORT)

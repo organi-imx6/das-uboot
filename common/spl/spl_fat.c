@@ -11,6 +11,7 @@
 
 #include <common.h>
 #include <spl.h>
+#include <fdt_support.h>
 #include <asm/u-boot.h>
 #include <fat.h>
 #include <image.h>
@@ -75,6 +76,7 @@ int spl_load_image_fat_os(block_dev_desc_t *block_dev, int partition)
 {
 	int err;
 	__maybe_unused char *file;
+	long size;
 
 	err = spl_register_fat_device(block_dev, partition);
 	if (err)
@@ -119,6 +121,18 @@ defaults:
 #ifdef CONFIG_SPL_LOAD_SPLASH
 	// try to load splash if exist
 	file_fat_read(CONFIG_SPL_FAT_LOAD_SPLASH_NAME, (void *)CONFIG_SYS_SPL_SPLASH_ADDR, 0);
+#endif
+
+#if defined(CONFIG_SPL_FAT_LOAD_INITRD_NAME) && defined(CONFIG_SYS_SPL_INITRD_ADDR)
+	size = file_fat_read(CONFIG_SPL_FAT_LOAD_INITRD_NAME, (void *)CONFIG_SYS_SPL_INITRD_ADDR, 0);
+	//set initrd address and size
+	if(size>0){
+		void *fdt = (void *)CONFIG_SYS_SPL_ARGS_ADDR;
+		fdt_open_into(fdt, fdt, fdt_totalsize(fdt)+0x10000);
+		fdt_initrd(fdt, CONFIG_SYS_SPL_INITRD_ADDR, CONFIG_SYS_SPL_INITRD_ADDR+size);
+		fdt_pack(fdt);
+	}
+
 #endif
 
 	return spl_load_image_fat(block_dev, partition,
