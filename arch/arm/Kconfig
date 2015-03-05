@@ -13,6 +13,9 @@ choice
 config TARGET_WISEHMI
 	bool "Support autorock wisehmi"
 
+config TARGET_RBCTRL
+	bool "Support autorock robot controller"
+
 config TARGET_INTEGRATORAP_CM720T
 	bool "Support integratorap_cm720t"
 
@@ -702,5 +705,6 @@ source "board/woodburn/Kconfig"
 source "board/xaeniax/Kconfig"
 source "board/zipitz2/Kconfig"
 source "board/autorock/wisehmi/Kconfig"
+source "board/autorock/rbctrl/Kconfig"
 
 endmenu
