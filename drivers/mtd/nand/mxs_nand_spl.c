@@ -55,7 +55,9 @@ static int mxs_flash_ident(struct mtd_info *mtd)
 	int i;
 	u8 mfg_id, dev_id;
 	u8 id_data[8];
+#ifdef CONFIG_SYS_NAND_ONFI_DETECTION
 	struct nand_onfi_params *p = &chip->onfi_params;
+#endif
 
 	/* Reset the chip */
 	chip->cmdfunc(mtd, NAND_CMD_RESET, -1, -1);
@@ -77,6 +79,7 @@ static int mxs_flash_ident(struct mtd_info *mtd)
 	}
 	debug("0x%02x:0x%02x ", mfg_id, dev_id);
 
+#ifdef CONFIG_SYS_NAND_ONFI_DETECTION
 	/* read ONFI */
 	chip->onfi_version = 0;
 	chip->cmdfunc(mtd, NAND_CMD_READID, 0x20, -1);
@@ -94,6 +97,12 @@ static int mxs_flash_ident(struct mtd_info *mtd)
 	mtd->oobsize = le16_to_cpu(p->spare_bytes_per_page);
 	chip->chipsize = le32_to_cpu(p->blocks_per_lun);
 	chip->chipsize *= (uint64_t)mtd->erasesize * p->lun_count;
+#else
+	mtd->writesize = CONFIG_SYS_NAND_PAGE_SIZE;
+	mtd->erasesize = CONFIG_SYS_NAND_BLOCK_SIZE;
+	mtd->oobsize = CONFIG_SYS_NAND_OOBSIZE;
+	chip->chipsize = 128*1024*1024;
+#endif
 	/* Calculate the address shift from the page size */
 	chip->page_shift = ffs(mtd->writesize) - 1;
 	chip->phys_erase_shift = ffs(mtd->erasesize) - 1;
