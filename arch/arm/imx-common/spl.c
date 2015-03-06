@@ -40,6 +40,8 @@ u32 spl_boot_device(void)
 		case 0x0 ... 0x4:
 #if defined (CONFIG_SPL_MMC_SUPPORT)
 			return BOOT_DEVICE_MMC1;
+#elif defined (CONFIG_BOOT_SPI)
+			return BOOT_DEVICE_SPI;
 #elif defined (CONFIG_SPL_NAND_SUPPORT)
 			return BOOT_DEVICE_NAND;
 #else

@@ -7,6 +7,8 @@
 #include <mmc.h>
 #include <fsl_esdhc.h>
 #include <asm/arch/clock.h>
+#include <spi_flash.h>
+#include <nand.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -17,6 +19,9 @@ DECLARE_GLOBAL_DATA_PTR;
 #define USDHC_PAD_CTRL (PAD_CTL_PUS_47K_UP |			\
 	PAD_CTL_SPEED_LOW | PAD_CTL_DSE_80ohm |			\
 	PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
+
+#define SPI_PAD_CTRL (PAD_CTL_HYS | PAD_CTL_SPEED_MED |		\
+		PAD_CTL_DSE_40ohm	  | PAD_CTL_SRE_FAST)
 
 #ifdef CONFIG_SPL_SERIAL_SUPPORT
 static iomux_v3_cfg_t const uart2_pads[] = {
@@ -134,6 +139,180 @@ static void setup_gpmi_nand(void)
 }
 #endif /* CONFIG_SPL_NAND_SUPPORT */
 
+#ifdef CONFIG_BOOT_SPI
+static iomux_v3_cfg_t const ecspi1_pads[] = {
+	/* SS0 */
+	MX6_PAD_EIM_EB2__GPIO2_IO30 | MUX_PAD_CTRL(NO_PAD_CTRL),
+//	MX6_PAD_EIM_EB2__ECSPI1_SS0 | MUX_PAD_CTRL(SPI_PAD_CTRL),
+	MX6_PAD_EIM_D17__ECSPI1_MISO | MUX_PAD_CTRL(SPI_PAD_CTRL),
+	MX6_PAD_EIM_D18__ECSPI1_MOSI | MUX_PAD_CTRL(SPI_PAD_CTRL),
+	MX6_PAD_EIM_D16__ECSPI1_SCLK | MUX_PAD_CTRL(SPI_PAD_CTRL),
+};
+
+static void setup_spi(void)
+{
+	imx_iomux_v3_setup_multiple_pads(ecspi1_pads, ARRAY_SIZE(ecspi1_pads));
+	enable_cspi_clock(1, 0);
+}
+
+int board_spi_cs_gpio(unsigned bus, unsigned cs)
+{
+	return (bus == 0 && cs == 0) ? (IMX_GPIO_NR(2, 30)) : -1;
+}
+
+static int nand_load_image_os(struct image_header *header)
+{
+	nand_init();
+
+	/* load linux */
+	nand_spl_load_image(CONFIG_SYS_NAND_SPL_KERNEL_OFFS,
+		sizeof(*header), (void *)header);
+	spl_parse_image_header(header);
+	if (header->ih_os == IH_OS_LINUX) {
+		/* happy - was a linux */
+		nand_spl_load_image(CONFIG_SYS_NAND_SPL_KERNEL_OFFS,
+			spl_image.size, (void *)spl_image.load_addr);
+		nand_deselect();
+		return 0;
+	}
+	puts("The Expected Linux image was not "
+		"found. Please check your NAND "
+		"configuration.\n");
+	puts("Trying to start u-boot now...\n");
+	return -1;
+}
+
+static void rbctrl_spl_spi_load_image(void)
+{
+	struct spi_flash *flash;
+	struct image_header *header;
+
+	flash = spi_flash_probe(CONFIG_SF_DEFAULT_BUS,
+				CONFIG_SF_DEFAULT_CS,
+				CONFIG_SF_DEFAULT_SPEED,
+				CONFIG_SF_DEFAULT_MODE);
+	if (!flash) {
+		puts("SPI probe failed.\n");
+		hang();
+	}
+
+	/* use CONFIG_SYS_TEXT_BASE as temporary storage area */
+	header = (struct image_header *)(CONFIG_SYS_TEXT_BASE);
+
+#ifdef CONFIG_SPL_OS_BOOT
+	if (spl_start_uboot() || nand_load_image_os(header))
+#endif
+	{
+		/* Load u-boot, mkimage header is 64 bytes. */
+		spi_flash_read(flash, CONFIG_SYS_SPI_U_BOOT_OFFS, sizeof(*header),
+			       (void *)header);
+		spl_parse_image_header(header);
+		spi_flash_read(flash, CONFIG_SYS_SPI_U_BOOT_OFFS,
+			       spl_image.size, (void *)spl_image.load_addr);
+	}
+}
+
+static void board_boot(void)
+{
+	extern void __noreturn jump_to_image_no_args(struct spl_image_info *);
+	u32 boot_device;
+
+#ifdef CONFIG_SYS_SPL_MALLOC_START
+	mem_malloc_init(CONFIG_SYS_SPL_MALLOC_START,
+			CONFIG_SYS_SPL_MALLOC_SIZE);
+#endif
+	timer_init();
+
+#ifdef CONFIG_SPL_BOARD_INIT
+	spl_board_init();
+#endif
+
+	boot_device = spl_boot_device();
+	debug("boot device - %d\n", boot_device);
+	switch (boot_device){
+#ifdef CONFIG_SPL_RAM_DEVICE
+	case BOOT_DEVICE_RAM:
+		spl_ram_load_image();
+		break;
+#endif
+#ifdef CONFIG_SPL_MMC_SUPPORT
+	case BOOT_DEVICE_MMC1:
+	case BOOT_DEVICE_MMC2:
+	case BOOT_DEVICE_MMC2_2:
+		spl_mmc_load_image();
+		break;
+#endif
+#ifdef CONFIG_SPL_NAND_SUPPORT
+	case BOOT_DEVICE_NAND:
+		spl_nand_load_image();
+		break;
+#endif
+#ifdef CONFIG_SPL_ONENAND_SUPPORT
+	case BOOT_DEVICE_ONENAND:
+		spl_onenand_load_image();
+		break;
+#endif
+#ifdef CONFIG_SPL_NOR_SUPPORT
+	case BOOT_DEVICE_NOR:
+		spl_nor_load_image();
+		break;
+#endif
+#ifdef CONFIG_SPL_YMODEM_SUPPORT
+	case BOOT_DEVICE_UART:
+		spl_ymodem_load_image();
+		break;
+#endif
+#ifdef CONFIG_SPL_SPI_SUPPORT
+	case BOOT_DEVICE_SPI:
+		rbctrl_spl_spi_load_image();
+		break;
+#endif
+#ifdef CONFIG_SPL_ETH_SUPPORT
+	case BOOT_DEVICE_CPGMAC:
+#ifdef CONFIG_SPL_ETH_DEVICE
+		spl_net_load_image(CONFIG_SPL_ETH_DEVICE);
+#else
+		spl_net_load_image(NULL);
+#endif
+		break;
+#endif
+#ifdef CONFIG_SPL_USBETH_SUPPORT
+	case BOOT_DEVICE_USBETH:
+		spl_net_load_image("usb_ether");
+		break;
+#endif
+#ifdef CONFIG_SPL_USB_SUPPORT
+	case BOOT_DEVICE_USB:
+		spl_usb_load_image();
+		break;
+#endif
+#ifdef CONFIG_SPL_SATA_SUPPORT
+	case BOOT_DEVICE_SATA:
+		spl_sata_load_image();
+		break;
+#endif
+	default:
+		debug("SPL: Un-supported Boot Device\n");
+		hang();
+	}
+
+	switch (spl_image.os) {
+	case IH_OS_U_BOOT:
+		debug("Jumping to U-Boot\n");
+		break;
+#ifdef CONFIG_SPL_OS_BOOT
+	case IH_OS_LINUX:
+		debug("Jumping to Linux\n");
+		spl_board_prepare_for_linux();
+		jump_to_image_linux((void *)CONFIG_SYS_SPL_ARGS_ADDR);
+#endif
+	default:
+		debug("Unsupported OS image.. Jumping nevertheless..\n");
+	}
+	jump_to_image_no_args(&spl_image);
+}
+#endif //#ifdef CONFIG_BOOT_SPI
+
 void board_init_f(ulong dummy)
 {
 	arch_cpu_init();
@@ -146,7 +325,11 @@ void board_init_f(ulong dummy)
 
 	board_early_init_f();
 
+#ifdef CONFIG_BOOT_SPI
+	board_boot();
+#else
 	board_init_r(NULL, 0);
+#endif
 }
 
 void spl_board_init(void)
@@ -154,6 +337,10 @@ void spl_board_init(void)
 	get_clocks();
 #ifdef CONFIG_SPL_SERIAL_SUPPORT
 	preloader_console_init();
+#endif
+
+#ifdef CONFIG_MXC_SPI
+	setup_spi();
 #endif
 
 #ifdef CONFIG_SPL_NAND_SUPPORT

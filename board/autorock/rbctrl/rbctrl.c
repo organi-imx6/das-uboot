@@ -130,7 +130,6 @@ int board_mmc_init(bd_t *bis)
 
 #ifdef CONFIG_MXC_SPI
 static iomux_v3_cfg_t const ecspi1_pads[] = {
-	/* SS2 */
 	MX6_PAD_EIM_EB2__GPIO2_IO30 | MUX_PAD_CTRL(NO_PAD_CTRL),
 	MX6_PAD_EIM_D17__ECSPI1_MISO | MUX_PAD_CTRL(SPI_PAD_CTRL),
 	MX6_PAD_EIM_D18__ECSPI1_MOSI | MUX_PAD_CTRL(SPI_PAD_CTRL),
@@ -145,7 +144,7 @@ static void setup_spi(void)
 
 int board_spi_cs_gpio(unsigned bus, unsigned cs)
 {
-	return (bus == 1 && cs == 0) ? (IMX_GPIO_NR(2, 30)) : -1;
+	return (bus == 0 && cs == 0) ? (IMX_GPIO_NR(2, 30)) : -1;
 }
 #endif
 

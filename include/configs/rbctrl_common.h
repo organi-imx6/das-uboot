@@ -1,6 +1,8 @@
 #ifndef __RBCTRL_COMMON_CONFIG_H
 #define __RBCTRL_COMMON_CONFIG_H
 
+#define CONFIG_FSL_CORENET
+
 #ifdef CONFIG_BOOT_MMC
 #define CONFIG_ENV_IS_IN_MMC
 #define CONFIG_SYS_MMC_ENV_DEV	0
@@ -17,6 +19,30 @@
 #define CONFIG_ENV_RANGE        (3 * 128 * 1024)
 #ifdef CONFIG_SPL_BUILD
 #define CONFIG_SPL_NAND_SUPPORT
+#endif
+#endif
+
+/*
+	SPI flash data layout
+	0:		SPL			64k
+	64k:		u-boot.img	480k
+	544k:	env			224k
+	768k:	dtb			256k
+	1M:		splash		1M
+*/
+#ifdef CONFIG_BOOT_SPI
+#define CONFIG_ENV_IS_IN_SPI_FLASH
+#define CONFIG_SYS_SPI_U_BOOT_OFFS	(64 * 1024)
+#define CONFIG_SYS_SPI_U_BOOT_SIZE	(480 * 1024)
+#define CONFIG_ENV_OFFSET       (CONFIG_SYS_SPI_U_BOOT_OFFS+CONFIG_SYS_SPI_U_BOOT_SIZE)
+#define CONFIG_ENV_RANGE        (224 * 1024)
+#define CONFIG_ENV_SECT_SIZE	(4 * 1024)
+#define CONFIG_FDT_FILE_SIZE 	(256 * 1024)
+#ifdef CONFIG_SPL_BUILD
+#define CONFIG_SPL_NAND_SUPPORT
+#define CONFIG_SPL_SPI_SUPPORT
+#define CONFIG_SPL_SPI_FLASH_SUPPORT
+#define CONFIG_MXC_GPIO
 #endif
 #endif
 
@@ -89,9 +115,9 @@
 #ifdef CONFIG_CMD_SF
 #define CONFIG_SPI
 #define CONFIG_SPI_FLASH
-#define CONFIG_SPI_FLASH_STMICRO
+#define CONFIG_SPI_FLASH_SST
 #define CONFIG_MXC_SPI
-#define CONFIG_SF_DEFAULT_BUS		1
+#define CONFIG_SF_DEFAULT_BUS		0
 #define CONFIG_SF_DEFAULT_CS		0
 #define CONFIG_SF_DEFAULT_SPEED		20000000
 #define CONFIG_SF_DEFAULT_MODE		SPI_MODE_0
@@ -105,7 +131,11 @@
 #define CONFIG_SYS_MAX_NAND_DEVICE	1
 #define CONFIG_SYS_NAND_BASE		0x40000000
 #define CONFIG_SYS_NAND_5_ADDR_CYCLE
-#define CONFIG_SYS_NAND_ONFI_DETECTION
+/*#define CONFIG_SYS_NAND_ONFI_DETECTION*/
+#define CONFIG_SYS_NAND_PAGE_SIZE	2048
+#define CONFIG_SYS_NAND_BLOCK_SIZE	(128*1024)
+#define CONFIG_SYS_NAND_OOBSIZE		64
+
 
 /* DMA stuff, needed for GPMI/MXS NAND support */
 #if !defined(CONFIG_SPL_BUILD) || defined(CONFIG_SPL_NAND_SUPPORT)
@@ -136,20 +166,14 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"image=" CONFIG_DEFAULT_KERNEL_FILE "\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
-	"initrd_file=" CONFIG_DEFAULT_INITRD_FILE "\0" \
 	"fdt_addr=0x18000000\0" \
-	"initrd_addr=0x13800000\0" \
 	"ethaddr=11:12:13:14:15:16\0" \
 	"ipaddr=172.10.11.190\0" \
 	"gateway=172.10.0.1\0" \
 	"netmask=255.255.0.0\0" \
 	"serverip=172.10.11.15\0" \
-	"nfsroot=/home/yuq/tmp/rootfs\0" \
+	"nfsroot=\0" \
 	"console=" CONFIG_CONSOLE_DEV "\0" \
-	"mmcdev=0\0" \
-	"mmcpart=1\0" \
-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
-	"mmcargs=setenv bootargs console=${console},${baudrate} root=${mmcroot}\0" \
 	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
 	"loadinitrd=fatload mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file} && setenv initrd_filesize ${filesize}\0" \
@@ -288,7 +312,12 @@
 #define CONFIG_SPL_FAT_LOAD_INITRD_NAME CONFIG_DEFAULT_INITRD_FILE
 #endif
 
-#if defined(CONFIG_SPL_NAND_SUPPORT)
+#if defined(CONFIG_SPL_SPI_SUPPORT)
+#define CONFIG_CMD_SPL_NAND_OFS         (0)
+#define CONFIG_CMD_SPL_WRITE_SIZE       (0)
+#define CONFIG_SYS_NAND_SPL_KERNEL_OFFS	(0)
+#define CONFIG_SYS_NAND_U_BOOT_OFFS     (0)
+#elif defined(CONFIG_SPL_NAND_SUPPORT)
 #define CONFIG_CMD_SPL_NAND_OFS         (10 * 128 * 1024)
 #define CONFIG_CMD_SPL_WRITE_SIZE       CONFIG_FDT_FILE_SIZE
 #define CONFIG_SYS_NAND_SPL_KERNEL_OFFS (13 * 128 * 1024)
@@ -297,4 +326,4 @@
 
 #endif /* CONFIG_SPL */
 
-#endif                         /* __RBCTRL_COMMON_CONFIG_H */
+#endif	/* __RBCTRL_COMMON_CONFIG_H */
