@@ -121,6 +121,12 @@
 #define CONFIG_SF_DEFAULT_CS		0
 #define CONFIG_SF_DEFAULT_SPEED		20000000
 #define CONFIG_SF_DEFAULT_MODE		SPI_MODE_0
+#ifdef CONFIG_ENV_IS_IN_SPI_FLASH
+#define CONFIG_ENV_SPI_BUS			CONFIG_SF_DEFAULT_BUS
+#define CONFIG_ENV_SPI_CS			CONFIG_SF_DEFAULT_CS
+#define CONFIG_ENV_SPI_MAX_HZ		CONFIG_SF_DEFAULT_SPEED
+#define CONFIG_ENV_SPI_MODE			CONFIG_SF_DEFAULT_MODE
+#endif
 #endif
 
 #define CONFIG_CMD_NAND
@@ -171,7 +177,7 @@
 	"ipaddr=172.10.11.190\0" \
 	"gateway=172.10.0.1\0" \
 	"netmask=255.255.0.0\0" \
-	"serverip=172.10.11.15\0" \
+	"serverip=172.10.11.1\0" \
 	"nfsroot=\0" \
 	"console=" CONFIG_CONSOLE_DEV "\0" \
 	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
@@ -186,14 +192,13 @@
 		"bootm ${loadaddr} - ${fdt_addr}\0" \
 	\
 	"mtdids=nand0=gpmi-nand\0" \
-    "mtdparts=mtdparts=gpmi-nand:128k(spl),768k(uboot),384k(env)," \
-        "384k(dtb),7680k(kernel),-(rootfs)\0" \
+    "mtdparts=mtdparts=gpmi-nand:5M(kernel),-(rootfs)\0" \
     \
 	"fl_spl=mw.b ${loadaddr} 0xff 0x400 && setexpr tmpvar ${filesize} + 0x400 && " \
-        "nand erase.part spl && nand write ${loadaddr} 0 ${tmpvar}\0" \
-	"fl_uboot=nand erase.part uboot && nand write ${loadaddr} uboot ${filesize}\0" \
-    "fl_env=nand erase.part env && nand write ${loadaddr} env ${filesize}\0" \
-	"fl_dtb=nand erase.part dtb && nand write ${loadaddr} dtb ${filesize}\0" \
+        "sf probe && sf update ${loadaddr} 0 ${filesize}\0" \
+	"fl_uboot=sf probe && sf update ${loadaddr} 0x10000 ${filesize}\0" \
+    "fl_env=sf probe && sf update ${loadaddr} 0x88000 ${filesize}\0" \
+	"fl_dtb=sf probe && sf update ${loadaddr} 0xC0000 ${filesize}\0" \
 	"fl_kernel=nand erase.part kernel && nand write ${loadaddr} kernel ${filesize}\0" \
     "fl_rootfs=nand erase.part rootfs && " \
 	"  ubi part rootfs && " \
@@ -202,22 +207,19 @@
 	\
     "tf_spl=setexpr tmpvar ${loadaddr} + 0x400 && tftp ${tmpvar} SPL && run fl_spl\0" \
 	"tf_uboot=tftp ${loadaddr} u-boot.img && run fl_uboot\0" \
-	"tf_env=tftp ${loadaddr} wisehmi.env && run fl_env\0" \
+	"tf_env=tftp ${loadaddr} rbctrl.env && run fl_env\0" \
 	"tf_dtb=tftp ${loadaddr} ${fdt_file} && run fl_dtb\0" \
 	"tf_kernel=tftp ${loadaddr} ${image} && run fl_kernel\0" \
 	"tf_rootfs=tftp ${loadaddr} rootfs.img && run fl_rootfs\0" \
     \
 	"mf_spl=fatload mmc 0 ${loadaddr} SPL && run fl_spl\0" \
 	"mf_uboot=fatload mmc 0 ${loadaddr} u-boot.img && run fl_uboot\0" \
-	"mf_env=fatload mmc 0 ${loadaddr} wisehmi.env && run fl_env\0" \
+	"mf_env=fatload mmc 0 ${loadaddr} rbctrl.env && run fl_env\0" \
 	"mf_dtb=fatload mmc 0 ${loadaddr} ${fdt_file} && run fl_dtb\0" \
 	"mf_kernel=fatload mmc 0 ${loadaddr} ${image} && run fl_kernel\0" \
 	"mf_rootfs=fatload mmc 0 ${loadaddr} rootfs.img && run fl_rootfs\0" \
 	"mf_all=run mf_spl && run mf_uboot && run mf_dtb && run mf_kernel && run mf_rootfs\0" \
-	\
-	"sffile=SPL\0" \
-	"burn_sf=tftp ${sffile} && sf probe && setexpr tmpvar ${filesize} + 0x400 && " \
-        "sf erase 0 +${tmpvar} && sf write ${loadaddr} 0x400 ${filesize}\0"
+
 
 #define CONFIG_BOOTCOMMAND \
 	"mmc dev ${mmcdev};" \

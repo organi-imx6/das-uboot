@@ -152,12 +152,13 @@ static iomux_v3_cfg_t const ecspi1_pads[] = {
 static void setup_spi(void)
 {
 	imx_iomux_v3_setup_multiple_pads(ecspi1_pads, ARRAY_SIZE(ecspi1_pads));
-	enable_cspi_clock(1, 0);
+	enable_cspi_clock(1, CONFIG_SF_DEFAULT_BUS);
 }
 
 int board_spi_cs_gpio(unsigned bus, unsigned cs)
 {
-	return (bus == 0 && cs == 0) ? (IMX_GPIO_NR(2, 30)) : -1;
+	return (bus == CONFIG_SF_DEFAULT_BUS && cs == CONFIG_SF_DEFAULT_CS) 
+		? (IMX_GPIO_NR(2, 30)) : -1;
 }
 
 static int nand_load_image_os(struct image_header *header)
@@ -351,7 +352,7 @@ void spl_board_init(void)
 int spl_start_uboot(void)
 {
 	// start uboot when console has input
-	mdelay(1);
+	mdelay(10);
 	return tstc();
 }
 
