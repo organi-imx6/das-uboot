@@ -27,6 +27,7 @@
 #include <asm/byteorder.h>
 #include <jffs2/jffs2.h>
 #include <nand.h>
+#include <packimg.h>
 
 #if defined(CONFIG_CMD_MTDPARTS)
 
@@ -829,6 +830,59 @@ static int do_nand(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			return 1;
 		}
 		return 0;
+	}
+#endif
+
+#ifdef CONFIG_NAND_PACKIMG
+	if (strncmp(cmd, "packimg", 7) == 0) {
+		loff_t nand_off, nand_size;
+		int pos = 5, index = 0;
+		ulong mem_off, mem_size, max_copy = 1;
+
+		if (argc < 3)
+			goto usage;
+
+		s = strchr(argv[2], '.');
+
+		if (s && !strcmp(s, ".part"))
+			pos = 4;
+
+		if (strncmp(argv[2], "read", 4) == 0) {
+			if (argc != pos)
+				goto usage;
+
+			if (arg_off_size(pos - 3, argv + 3, &index, &nand_off, &nand_size, &maxsize))
+				goto usage;
+
+			return nand_packimg_read(&nand_info[dev], nand_off, nand_size);
+		}
+
+		if (strncmp(argv[2], "write", 4) == 0) {
+			if (argc != pos + 2 && argc != pos + 3)
+				goto usage;
+
+			if (arg_off_size(pos - 3, argv + 3, &index, &nand_off, &nand_size, &maxsize))
+				goto usage;
+
+			if (!str2long(argv[pos], &mem_off))
+				goto usage;
+
+			if (!str2long(argv[pos + 1], &mem_size))
+				goto usage;
+
+			if (argc == pos + 3 && !str2long(argv[pos + 2], &max_copy))
+				goto usage;
+
+			if (max_copy < 1) {
+				puts("Error write packimg, max copy must be greater than 1\n");
+				return 1;
+			}
+
+			return nand_packimg_write(&nand_info[dev], nand_off, nand_size, 
+								 mem_off, mem_size, max_copy);
+		}
+
+		goto usage;	
 	}
 #endif
 

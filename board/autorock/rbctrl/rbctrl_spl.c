@@ -9,6 +9,7 @@
 #include <asm/arch/clock.h>
 #include <spi_flash.h>
 #include <nand.h>
+#include <packimg.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -161,7 +162,7 @@ int board_spi_cs_gpio(unsigned bus, unsigned cs)
 		? (IMX_GPIO_NR(2, 30)) : -1;
 }
 
-static int nand_load_image_os(struct image_header *header)
+static int load_image_os(struct spi_flash *flash, struct image_header *header)
 {
 	nand_init();
 
@@ -171,8 +172,11 @@ static int nand_load_image_os(struct image_header *header)
 	spl_parse_image_header(header);
 	if (header->ih_os == IH_OS_LINUX) {
 		/* happy - was a linux */
+		sf_load_packimg(flash, CONFIG_SYS_SPI_PACK_OFFS, NULL);
+
 		nand_spl_load_image(CONFIG_SYS_NAND_SPL_KERNEL_OFFS,
 			spl_image.size, (void *)spl_image.load_addr);
+
 		nand_deselect();
 		return 0;
 	}
@@ -201,7 +205,7 @@ static void rbctrl_spl_spi_load_image(void)
 	header = (struct image_header *)(CONFIG_SYS_TEXT_BASE);
 
 #ifdef CONFIG_SPL_OS_BOOT
-	if (spl_start_uboot() || nand_load_image_os(header))
+	if (spl_start_uboot() || load_image_os(flash, header))
 #endif
 	{
 		/* Load u-boot, mkimage header is 64 bytes. */

@@ -214,6 +214,7 @@ obj-$(CONFIG_USB_KEYBOARD) += usb_kbd.o
 obj-$(CONFIG_CMD_DFU) += cmd_dfu.o
 obj-$(CONFIG_CMD_GPT) += cmd_gpt.o
 endif
+obj-$(CONFIG_PACKIMG) += packimg.o
 
 ifdef CONFIG_SPL_BUILD
 obj-$(CONFIG_OF_LIBFDT) += fdt_support.o
