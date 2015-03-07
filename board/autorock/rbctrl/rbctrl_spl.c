@@ -1,6 +1,7 @@
 #include <common.h>
 #include <spl.h>
 #include <asm/imx-common/iomux-v3.h>
+#include <asm/imx-common/regs-gpmi.h>
 #include <asm/arch/mx6-pins.h>
 #include <asm/arch/crm_regs.h>
 #include <asm/io.h>
@@ -119,6 +120,78 @@ iomux_v3_cfg_t nfc_pads[] = {
 	MX6_PAD_SD4_DAT0__NAND_DQS		| MUX_PAD_CTRL(NO_PAD_CTRL),
 };
 
+/**
+ * struct nand_timing - Fundamental timing attributes for NAND.
+ * @data_setup_in_ns:         The data setup time, in nanoseconds. Usually the
+ *                            maximum of tDS and tWP. A negative value
+ *                            indicates this characteristic isn't known.
+ * @data_hold_in_ns:          The data hold time, in nanoseconds. Usually the
+ *                            maximum of tDH, tWH and tREH. A negative value
+ *                            indicates this characteristic isn't known.
+ * @address_setup_in_ns:      The address setup time, in nanoseconds. Usually
+ *                            the maximum of tCLS, tCS and tALS. A negative
+ *                            value indicates this characteristic isn't known.
+ * @gpmi_sample_delay_in_ns:  A GPMI-specific timing parameter. A negative value
+ *                            indicates this characteristic isn't known.
+ * @tREA_in_ns:               tREA, in nanoseconds, from the data sheet. A
+ *                            negative value indicates this characteristic isn't
+ *                            known.
+ * @tRLOH_in_ns:              tRLOH, in nanoseconds, from the data sheet. A
+ *                            negative value indicates this characteristic isn't
+ *                            known.
+ * @tRHOH_in_ns:              tRHOH, in nanoseconds, from the data sheet. A
+ *                            negative value indicates this characteristic isn't
+ *                            known.
+ */
+struct nand_timing {
+	int8_t  data_setup_in_ns;
+	int8_t  data_hold_in_ns;
+	int8_t  address_setup_in_ns;
+	int8_t  gpmi_sample_delay_in_ns;
+	int8_t  tREA_in_ns;
+	int8_t  tRLOH_in_ns;
+	int8_t  tRHOH_in_ns;
+};
+
+/* Converts time in nanoseconds to cycles. */
+static inline unsigned int ns_to_cycles(unsigned int time,
+			unsigned int period, unsigned int min)
+{
+	unsigned int k;
+
+	k = (time + period - 1) / period;
+	return max(k, min);
+}
+
+static void set_gpmi_nand_timing(unsigned long clock_frequency_in_hz)
+{
+	struct mxs_gpmi_regs *gpmi_regs =
+		(struct mxs_gpmi_regs *)MXS_GPMI_BASE;
+
+	// Samsung K9F1G08U0C
+	const struct nand_timing  nand_timing = {
+		.data_setup_in_ns        = 12,
+		.data_hold_in_ns         = 5,
+		.address_setup_in_ns     = 12,
+		.gpmi_sample_delay_in_ns =  6,
+		.tREA_in_ns              = 20,
+		.tRLOH_in_ns             = 5,
+		.tRHOH_in_ns             = 15,
+	};
+
+	unsigned int clock_period_in_ns = 1000000000L / clock_frequency_in_hz;
+	unsigned int data_setup_in_cycles = ns_to_cycles(nand_timing.data_setup_in_ns,
+							clock_period_in_ns, 1);
+	unsigned int data_hold_in_cycles = ns_to_cycles(nand_timing.data_hold_in_ns,
+							clock_period_in_ns, 1);
+	unsigned int address_setup_in_cycles = ns_to_cycles(nand_timing.address_setup_in_ns,
+							clock_period_in_ns, 0);
+
+	writel((address_setup_in_cycles<<16)|
+		(data_hold_in_cycles<<8)|(data_setup_in_cycles), 
+		&gpmi_regs->hw_gpmi_timing0);
+}
+
 static void setup_gpmi_nand(void)
 {
 	struct mxc_ccm_reg *mxc_ccm = (struct mxc_ccm_reg *)CCM_BASE_ADDR;
@@ -130,13 +203,15 @@ static void setup_gpmi_nand(void)
 	enable_usdhc_clk(1, 3);
 	enable_usdhc_clk(1, 4);
 
-	// GPMICLK select PLL2 307M, divided by 1 x 16 = 19.18M
-	setup_gpmi_io_clk(MXC_CCM_CS2CDR_ENFC_CLK_PODF(0xf) |
+	// GPMICLK select PLL2 307M, divided by 1 x 2
+	setup_gpmi_io_clk(MXC_CCM_CS2CDR_ENFC_CLK_PODF(0x1) |
 			  MXC_CCM_CS2CDR_ENFC_CLK_PRED(1)   |
 			  MXC_CCM_CS2CDR_ENFC_CLK_SEL(0));
 
 	/* enable apbh clock gating */
 	setbits_le32(&mxc_ccm->CCGR0, MXC_CCM_CCGR0_APBHDMA_MASK);
+
+	set_gpmi_nand_timing(307000000/2);
 }
 #endif /* CONFIG_SPL_NAND_SUPPORT */
 
