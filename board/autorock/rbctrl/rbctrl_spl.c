@@ -344,6 +344,13 @@ void spl_board_init(void)
 	preloader_console_init();
 #endif
 
+#ifdef CONFIG_SPL_TLB_ADDRESS
+	gd->arch.tlb_addr = CONFIG_SPL_TLB_ADDRESS;
+	gd->arch.tlb_size = PGTABLE_SIZE;
+	gd->bd->bi_dram[0].start = CONFIG_SYS_SDRAM_BASE;
+	gd->bd->bi_dram[0].size = PHYS_SDRAM_SIZE;
+	enable_caches();
+#endif
 #ifdef CONFIG_MXC_SPI
 	setup_spi();
 #endif

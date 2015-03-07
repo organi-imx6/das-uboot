@@ -109,6 +109,7 @@ __weak void __noreturn jump_to_image_no_args(struct spl_image_info *spl_image)
 			(image_entry_noargs_t) spl_image->entry_point;
 
 	debug("image entry point: 0x%X\n", spl_image->entry_point);
+	cleanup_before_linux();
 	image_entry();
 }
 
@@ -134,11 +135,6 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 	u32 boot_device;
 	debug(">>spl:board_init_r()\n");
 
-#ifdef CONFIG_SYS_SPL_MALLOC_START
-	mem_malloc_init(CONFIG_SYS_SPL_MALLOC_START,
-			CONFIG_SYS_SPL_MALLOC_SIZE);
-#endif
-
 #ifndef CONFIG_PPC
 	/*
 	 * timer_init() does not exist on PPC systems. The timer is initialized
@@ -149,6 +145,10 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 
 #ifdef CONFIG_SPL_BOARD_INIT
 	spl_board_init();
+#endif
+#ifdef CONFIG_SYS_SPL_MALLOC_START
+	mem_malloc_init(CONFIG_SYS_SPL_MALLOC_START,
+			CONFIG_SYS_SPL_MALLOC_SIZE);
 #endif
 
 	boot_device = spl_boot_device();

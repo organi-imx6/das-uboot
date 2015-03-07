@@ -159,6 +159,14 @@ void spl_board_init(void)
 #ifdef CONFIG_SPL_NAND_SUPPORT
 	setup_gpmi_nand();
 #endif
+
+#ifdef CONFIG_SPL_TLB_ADDRESS
+	gd->arch.tlb_addr = CONFIG_SPL_TLB_ADDRESS;
+	gd->arch.tlb_size = PGTABLE_SIZE;
+	gd->bd->bi_dram[0].start = CONFIG_SYS_SDRAM_BASE;
+	gd->bd->bi_dram[0].size = 1*SZ_1G;
+	enable_caches();
+#endif
 }
 
 int spl_start_uboot(void)
