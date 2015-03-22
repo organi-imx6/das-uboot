@@ -20,21 +20,21 @@ struct pack_entry {
 	char name[PACK_NAME_MAX];
 };
 
-#ifdef CONFIG_SPL_BUILD
+#if defined(CONFIG_SPL_SPI_SUPPORT)
 #include <spi_flash.h>
-/*
-	failed: return -1
-	success: return 0, name==NULL or can't find
-			return <name>@address
-*/
 int sf_load_packimg(struct spi_flash *flash, uint32_t offs, char *name);
-#else
-#ifdef CONFIG_NAND_PACKIMG
+#endif
+
+#if defined(CONFIG_SPL_MMC_SUPPORT)
+#include <mmc.h>
+int mmc_load_packimg(struct mmc *mmc, uint32_t offs_sector, const char *name[], uint32_t ldaddr[]);
+#endif
+
+#if defined(CONFIG_SPL_NAND_SUPPORT)
 #include <nand.h>
 int nand_packimg_read(nand_info_t *nand, uint32_t nand_off, uint32_t nand_size);
 int nand_packimg_write(nand_info_t *nand, uint32_t nand_off, uint32_t nand_size, uint32_t mem_off, 
 				  uint32_t mem_size, uint32_t max_copy);
 #endif
-#endif //#ifdef CONFIG_SPL_BUILD
 
 #endif

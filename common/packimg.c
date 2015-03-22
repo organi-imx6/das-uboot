@@ -10,9 +10,15 @@ static uint32_t calc_crc(void *buff, int size)
 	return ret;
 }
 
-#ifdef CONFIG_SPL_BUILD
 #define MAX_PACK_ENTRY	8
+
+#if defined(CONFIG_SPL_SPI_SUPPORT)
 #include <spi_flash.h>
+/*
+	failed: return -1
+	success: return 0, name==NULL or can't find
+			return <name>@address
+*/
 int sf_load_packimg(struct spi_flash *flash, uint32_t offs, char *name)
 {
 	struct pack_header *ph;
@@ -61,9 +67,71 @@ int sf_load_packimg(struct spi_flash *flash, uint32_t offs, char *name)
 	debug("load packimg success\n");
 	return ret;
 }
+#endif //#if defined(CONFIG_SPL_SPI_SUPPORT)
 
-#else
-#ifdef CONFIG_NAND_PACKIMG
+#if defined(CONFIG_SPL_MMC_SUPPORT)
+
+#include <mmc.h>
+#define ROUND_UP(n,log2)	(((n) + (1<<(log2)) - 1) >> (log2))
+
+int mmc_load_packimg(struct mmc *mmc, uint32_t offs_sector, const char *name[], uint32_t ldaddr[])
+{
+	struct pack_header *ph;
+	struct pack_entry *pe;
+	uint8_t *buf = (uint8_t *)CONFIG_SYS_TEXT_BASE-4096;
+	uint32_t crc, size;
+	int ret, i,j;
+
+	size = ROUND_UP(sizeof(buf),mmc->block_dev.log2blksz);
+	ret = mmc->block_dev.block_read(0, offs_sector, size, buf);
+	if(ret<0){
+		printf("%s: load head failed\n", __FUNCTION__);
+		return ret;
+	}
+	ph = (struct pack_header *)buf;
+	pe = (struct pack_entry *)(ph+1);
+
+	// check valid header
+	if (ph->magic != PACK_MAGIC){
+		printf("mmc load packimg from sector 0x%x fail\n", offs_sector);
+		return -1;
+	}
+
+	crc = calc_crc(pe, ph->nentry * sizeof(*pe));
+	if (ph->crc != crc){
+		printf("packimg head crc error 0x%x should be 0x%x\n", ph->crc, crc);
+		return -1;
+	}
+	if(ph->nentry>MAX_PACK_ENTRY){
+		printf("Warning packimg entry %d bigger than %d\n", ph->nentry, MAX_PACK_ENTRY);
+		ph->nentry = MAX_PACK_ENTRY;
+	}
+
+	// load all entries
+	for (i = 0; i < ph->nentry; i++){
+		for(j=0; name && name[j]; j++){
+			if(strcmp(name[j], pe[i].name)==0){ //match name
+				ldaddr[j] = pe[i].ldaddr;
+				printf("find %s @ 0x%x\n", name[j], ldaddr[j]);
+			}
+		}
+
+		debug("load %s@0x%x to ram 0x%x\n", pe[i].name, 
+			offs_sector+(pe[i].offset>>mmc->block_dev.log2blksz), pe[i].ldaddr);
+		mmc->block_dev.block_read(0, offs_sector+(pe[i].offset>>mmc->block_dev.log2blksz), 
+			ROUND_UP(pe[i].size, mmc->block_dev.log2blksz), (void *)pe[i].ldaddr);
+		crc = calc_crc((void *)pe[i].ldaddr, pe[i].size);
+		if (pe[i].crc != crc){
+			printf("packimg data crc error 0x%x should be 0x%x\n", pe[i].crc, crc);
+			return -1;
+		}
+	}
+	debug("load packimg success\n");
+	return 0;
+}
+#endif //#if defined(CONFIG_SPL_MMC_SUPPORT)
+
+#if defined(CONFIG_SPL_NAND_SUPPORT)
 #include <nand.h>
 int nand_packimg_read(nand_info_t *nand, uint32_t nand_off, uint32_t nand_size)
 {
@@ -179,6 +247,5 @@ out:
 		return -1;
 	}
 }
-#endif //#ifdef CONFIG_NAND_PACKIMG
-#endif //#ifdef CONFIG_SPL_BUILD
+#endif //#if defined(CONFIG_SPL_NAND_SUPPORT)
 

@@ -52,6 +52,34 @@ end:
 }
 
 #ifdef CONFIG_SPL_OS_BOOT
+#if defined(CONFIG_SPL_PACKIMG)
+#include <packimg.h>
+
+static int mmc_load_image_raw_os(struct mmc *mmc)
+{
+	const char *name[]={CONFIG_DEFAULT_FDT_FILE, "zImage"};
+	uint32_t ldaddr[]={0,0};
+
+	if (mmc_load_packimg(mmc, CONFIG_SYS_MMCSD_RAW_MODE_PACKIMG_SECTOR, name, ldaddr)) {
+		return -1;
+	}
+
+	if(ldaddr[0]!=CONFIG_SYS_SPL_ARGS_ADDR){
+		printf("FDT address(0x%x) must be 0x%x\n", ldaddr[0], CONFIG_SYS_SPL_ARGS_ADDR);
+		return -1;
+	}
+
+	if(ldaddr[1]==0){
+		printf("can't find kernel in packimg\n");
+		return -1;
+	}
+
+	spl_image.os = IH_OS_LINUX;
+	spl_image.entry_point = ldaddr[1];
+
+	return 0;
+}
+#else
 static int mmc_load_image_raw_os(struct mmc *mmc)
 {
 	if (!mmc->block_dev.block_read(0,
@@ -66,6 +94,7 @@ static int mmc_load_image_raw_os(struct mmc *mmc)
 
 	return mmc_load_image_raw(mmc, CONFIG_SYS_MMCSD_RAW_MODE_KERNEL_SECTOR);
 }
+#endif	//#if defined(CONFIG_SPL_PACKIMG)
 #endif
 
 void spl_mmc_load_image(void)

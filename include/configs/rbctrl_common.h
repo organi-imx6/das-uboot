@@ -24,7 +24,7 @@
 
 /*
 	SPI flash data layout
-	0:		SPL				64k
+	1:		SPL				63k
 	64k:		u-boot.img		480k
 	544k:	env				224k
 	768k:	pack(dtb,splash)	256k
@@ -136,7 +136,6 @@
 #define CONFIG_SYS_NAND_BASE		0x40000000
 #define CONFIG_SYS_NAND_5_ADDR_CYCLE
 /*#define CONFIG_SYS_NAND_ONFI_DETECTION*/
-#define CONFIG_NAND_PACKIMG
 #ifdef CONFIG_SPL_BUILD
 #define CONFIG_SYS_NAND_PAGE_SIZE	2048
 #define CONFIG_SYS_NAND_BLOCK_SIZE	(128*1024)
