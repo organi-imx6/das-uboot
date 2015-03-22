@@ -11,7 +11,7 @@
 	64k:		u-boot.img		512k
 	576k:	env				448k
 	1M:		pack(dtb,zImage)	5M
-	6M:		initramfs.cpio		58M
+	6M:		initramfs.cpio.img	58M
 	64M		partition2(rootfs)
 */
 #define CONFIG_SYS_MMCSD_RAW_MODE_SPL_SECTOR	2 /* offset 1KB */
@@ -23,6 +23,16 @@
 #define CONFIG_ENV_IS_IN_MMC
 #define CONFIG_SYS_MMC_ENV_DEV	0
 #define CONFIG_ENV_OFFSET       ((CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR+CONFIG_SYS_U_BOOT_MAX_SIZE_SECTORS)*512)
+#define CONFIG_FL_DEFAULT_ENV	\
+	"image=pImage\0" \
+	"round_mmcblk=setexpr tmpvar ${filesize} + 0x1ff && setexpr tmpvar ${tmpvar} / 0x200\0" \
+	"fl_spl=run round_mmcblk && mmc write ${loadaddr} 2 ${tmpvar}\0" \
+	"fl_uboot=run round_mmcblk && mmc write ${loadaddr} 0x80 ${tmpvar}\0" \
+	"fl_kernel=run round_mmcblk && mmc write ${loadaddr} 0x800 ${tmpvar}\0" \
+	"fl_initroot=run round_mmcblk && mmc write ${loadaddr} 0x3000 ${tmpvar}\0" \
+	\
+    "tf_spl=tftp ${loadaddr} SPL && run fl_spl\0" \
+
 #ifdef CONFIG_SPL_BUILD
 #define CONFIG_SPL_MMC_SUPPORT
 /*#define CONFIG_SPL_FAT_SUPPORT*/
@@ -33,6 +43,25 @@
 #define CONFIG_ENV_IS_IN_NAND
 #define CONFIG_ENV_OFFSET       (7 * 128 * 1024)
 #define CONFIG_ENV_RANGE        (3 * 128 * 1024)
+#define CONFIG_FL_DEFAULT_ENV	\
+	"image=" CONFIG_DEFAULT_KERNEL_FILE "\0" \
+	"mtdids=nand0=gpmi-nand\0" \
+    "mtdparts=mtdparts=gpmi-nand:128k(spl),768k(uboot),384k(env)," \
+        "384k(dtb),7680k(kernel),-(rootfs)\0" \
+    \
+	"fl_spl=mw.b ${loadaddr} 0xff 0x400 && setexpr tmpvar ${filesize} + 0x400 && " \
+        "nand erase.part spl && nand write ${loadaddr} 0 ${tmpvar}\0" \
+	"fl_uboot=nand erase.part uboot && nand write ${loadaddr} uboot ${filesize}\0" \
+    "fl_env=nand erase.part env && nand write ${loadaddr} env ${filesize}\0" \
+	"fl_dtb=nand erase.part dtb && nand write ${loadaddr} dtb ${filesize}\0" \
+	"fl_kernel=nand erase.part kernel && nand write ${loadaddr} kernel ${filesize}\0" \
+    "fl_rootfs=nand erase.part rootfs && " \
+	"  ubi part rootfs && " \
+	"  ubi create rootfs && " \
+	"  ubi write ${loadaddr} rootfs ${filesize}\0" \
+	\
+    "tf_spl=setexpr tmpvar ${loadaddr} + 0x400 && tftp ${tmpvar} SPL && run fl_spl\0" \
+
 #ifdef CONFIG_SPL_BUILD
 #define CONFIG_SPL_NAND_SUPPORT
 #endif
@@ -152,7 +181,6 @@
 #define CONFIG_SYS_TEXT_BASE           0x17800000
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
-	"image=" CONFIG_DEFAULT_KERNEL_FILE "\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"initrd_file=" CONFIG_DEFAULT_INITRD_FILE "\0" \
 	"fdt_addr=0x18000000\0" \
@@ -178,23 +206,7 @@
 	    "nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
 	"netboot=run netargs && tftp ${image} && tftp ${fdt_addr} ${fdt_file} && " \
 		"bootm ${loadaddr} - ${fdt_addr}\0" \
-	\
-	"mtdids=nand0=gpmi-nand\0" \
-    "mtdparts=mtdparts=gpmi-nand:128k(spl),768k(uboot),384k(env)," \
-        "384k(dtb),7680k(kernel),-(rootfs)\0" \
-    \
-	"fl_spl=mw.b ${loadaddr} 0xff 0x400 && setexpr tmpvar ${filesize} + 0x400 && " \
-        "nand erase.part spl && nand write ${loadaddr} 0 ${tmpvar}\0" \
-	"fl_uboot=nand erase.part uboot && nand write ${loadaddr} uboot ${filesize}\0" \
-    "fl_env=nand erase.part env && nand write ${loadaddr} env ${filesize}\0" \
-	"fl_dtb=nand erase.part dtb && nand write ${loadaddr} dtb ${filesize}\0" \
-	"fl_kernel=nand erase.part kernel && nand write ${loadaddr} kernel ${filesize}\0" \
-    "fl_rootfs=nand erase.part rootfs && " \
-	"  ubi part rootfs && " \
-	"  ubi create rootfs && " \
-	"  ubi write ${loadaddr} rootfs ${filesize}\0" \
-	\
-    "tf_spl=setexpr tmpvar ${loadaddr} + 0x400 && tftp ${tmpvar} SPL && run fl_spl\0" \
+	CONFIG_FL_DEFAULT_ENV \
 	"tf_uboot=tftp ${loadaddr} u-boot.img && run fl_uboot\0" \
 	"tf_env=tftp ${loadaddr} wisehmi.env && run fl_env\0" \
 	"tf_dtb=tftp ${loadaddr} ${fdt_file} && run fl_dtb\0" \
