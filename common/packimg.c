@@ -121,11 +121,12 @@ int mmc_load_packimg(struct mmc *mmc, uint32_t offs_sector, pack_info_t *info)
 			offs_sector+(pe[i].offset>>mmc->block_dev.log2blksz), pe[i].ldaddr);
 		mmc->block_dev.block_read(0, offs_sector+(pe[i].offset>>mmc->block_dev.log2blksz), 
 			ROUND_UP(pe[i].size, mmc->block_dev.log2blksz), (void *)pe[i].ldaddr);
-		crc = calc_crc((void *)pe[i].ldaddr, pe[i].size);
+		//printf("done\n");
+		/*crc = calc_crc((void *)pe[i].ldaddr, pe[i].size);
 		if (pe[i].crc != crc){
 			printf("packimg data crc error 0x%x should be 0x%x\n", pe[i].crc, crc);
 			return -1;
-		}
+		}*/
 	}
 	debug("load packimg success\n");
 	return 0;
