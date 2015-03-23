@@ -12,6 +12,7 @@
 #include <mmc.h>
 #include <version.h>
 #include <image.h>
+#include <fdt_support.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -57,25 +58,39 @@ end:
 
 static int mmc_load_image_raw_os(struct mmc *mmc)
 {
-	const char *name[]={CONFIG_DEFAULT_FDT_FILE, "zImage"};
-	uint32_t ldaddr[]={0,0};
+	pack_info_t packinfo[]={{.name = CONFIG_DEFAULT_FDT_FILE, },{.name = "zImage",.ldaddr=0, },{.name = NULL,}};
 
-	if (mmc_load_packimg(mmc, CONFIG_SYS_MMCSD_RAW_MODE_PACKIMG_SECTOR, name, ldaddr)) {
+	if (mmc_load_packimg(mmc, CONFIG_SYS_MMCSD_RAW_MODE_PACKIMG_SECTOR, packinfo)) {
 		return -1;
 	}
 
-	if(ldaddr[0]!=CONFIG_SYS_SPL_ARGS_ADDR){
-		printf("FDT address(0x%x) must be 0x%x\n", ldaddr[0], CONFIG_SYS_SPL_ARGS_ADDR);
+	if(packinfo[0].ldaddr!=CONFIG_SYS_SPL_ARGS_ADDR){
+		printf("FDT address(0x%x) must be 0x%x\n", packinfo[0].ldaddr, CONFIG_SYS_SPL_ARGS_ADDR);
 		return -1;
 	}
 
-	if(ldaddr[1]==0){
+	if(packinfo[1].ldaddr==0){
 		printf("can't find kernel in packimg\n");
 		return -1;
 	}
 
 	spl_image.os = IH_OS_LINUX;
-	spl_image.entry_point = ldaddr[1];
+	spl_image.entry_point = packinfo[1].ldaddr;
+
+#ifdef CONFIG_SYS_MMCSD_RAW_MODE_INITRD_SECTOR
+	packinfo[0].name = CONFIG_DEFAULT_INITRD_FILE;
+	packinfo[0].ldaddr = 0;
+	packinfo[1].name = NULL;
+	if(mmc_load_packimg(mmc, CONFIG_SYS_MMCSD_RAW_MODE_INITRD_SECTOR, packinfo)==0 &&
+		packinfo[0].ldaddr!=0 && packinfo[0].size>0){
+
+		void *fdt = (void *)CONFIG_SYS_SPL_ARGS_ADDR;
+		fdt_open_into(fdt, fdt, fdt_totalsize(fdt)+0x10000);
+		fdt_initrd(fdt, packinfo[0].ldaddr, packinfo[0].ldaddr+packinfo[0].size);
+		fdt_pack(fdt);
+	}
+
+#endif
 
 	return 0;
 }

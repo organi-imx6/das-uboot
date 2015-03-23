@@ -182,7 +182,7 @@
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
-	"initrd_file=" CONFIG_DEFAULT_INITRD_FILE "\0" \
+	"initrd_file=" CONFIG_DEFAULT_INITRD_FILE ".pack\0" \
 	"fdt_addr=0x18000000\0" \
 	"initrd_addr=0x13800000\0" \
 	"ethaddr=11:12:13:14:15:16\0" \
@@ -211,6 +211,7 @@
 	"tf_env=tftp ${loadaddr} wisehmi.env && run fl_env\0" \
 	"tf_dtb=tftp ${loadaddr} ${fdt_file} && run fl_dtb\0" \
 	"tf_kernel=tftp ${loadaddr} ${image} && run fl_kernel\0" \
+	"tf_initroot=tftp ${loadaddr} ${initrd_file} && run fl_initroot\0" \
 	"tf_rootfs=tftp ${loadaddr} rootfs.img && run fl_rootfs\0" \
     \
 	"mf_spl=fatload mmc 0 ${loadaddr} SPL && run fl_spl\0" \
@@ -308,6 +309,9 @@
 #if defined(CONFIG_SPL_MMC_SUPPORT)
 #if defined(CONFIG_SPL_PACKIMG)
 #define CONFIG_SYS_MMCSD_RAW_MODE_PACKIMG_SECTOR	((CONFIG_ENV_OFFSET+CONFIG_ENV_SIZE)/512)  /* offset 1M */
+#ifdef CONFIG_DEFAULT_INITRD_FILE
+#define CONFIG_SYS_MMCSD_RAW_MODE_INITRD_SECTOR		(CONFIG_SYS_MMCSD_RAW_MODE_PACKIMG_SECTOR+SZ_1M*5/512)/* offset 6M */
+#endif
 #else
 #define CONFIG_SYS_MMCSD_RAW_MODE_KERNEL_SECTOR	4096  /* offset 2M */
 #define CONFIG_SYS_MMCSD_RAW_MODE_ARGS_SECTOR	2048  /* offset 1M */

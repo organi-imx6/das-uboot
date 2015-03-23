@@ -20,6 +20,12 @@ struct pack_entry {
 	char name[PACK_NAME_MAX];
 };
 
+typedef struct pack_info{
+	const char *name;
+	uint32_t ldaddr;
+	uint32_t size;
+}pack_info_t;
+
 #if defined(CONFIG_SPL_SPI_SUPPORT)
 #include <spi_flash.h>
 int sf_load_packimg(struct spi_flash *flash, uint32_t offs, char *name);
@@ -27,7 +33,7 @@ int sf_load_packimg(struct spi_flash *flash, uint32_t offs, char *name);
 
 #if defined(CONFIG_SPL_MMC_SUPPORT)
 #include <mmc.h>
-int mmc_load_packimg(struct mmc *mmc, uint32_t offs_sector, const char *name[], uint32_t ldaddr[]);
+int mmc_load_packimg(struct mmc *mmc, uint32_t offs_sector, pack_info_t *info);
 #endif
 
 #if defined(CONFIG_SPL_NAND_SUPPORT)

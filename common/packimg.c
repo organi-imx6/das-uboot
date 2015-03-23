@@ -74,7 +74,7 @@ int sf_load_packimg(struct spi_flash *flash, uint32_t offs, char *name)
 #include <mmc.h>
 #define ROUND_UP(n,log2)	(((n) + (1<<(log2)) - 1) >> (log2))
 
-int mmc_load_packimg(struct mmc *mmc, uint32_t offs_sector, const char *name[], uint32_t ldaddr[])
+int mmc_load_packimg(struct mmc *mmc, uint32_t offs_sector, pack_info_t *info)
 {
 	struct pack_header *ph;
 	struct pack_entry *pe;
@@ -109,10 +109,11 @@ int mmc_load_packimg(struct mmc *mmc, uint32_t offs_sector, const char *name[], 
 
 	// load all entries
 	for (i = 0; i < ph->nentry; i++){
-		for(j=0; name && name[j]; j++){
-			if(strcmp(name[j], pe[i].name)==0){ //match name
-				ldaddr[j] = pe[i].ldaddr;
-				printf("find %s @ 0x%x\n", name[j], ldaddr[j]);
+		for(j=0; info[j].name; j++){
+			if(strcmp(info[j].name, pe[i].name)==0){ //match name
+				info[j].ldaddr = pe[i].ldaddr;
+				info[j].size = pe[i].size;
+				printf("find %s @ 0x%x(size=0x%x)\n", info[j].name, info[j].ldaddr, info[j].size);
 			}
 		}
 
