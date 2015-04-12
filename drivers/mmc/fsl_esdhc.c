@@ -47,7 +47,9 @@ struct fsl_esdhc {
 	uint    fevt;		/* Force event register */
 	uint    admaes;		/* ADMA error status register */
 	uint    adsaddr;	/* ADMA system address register */
-	char    reserved2[160];	/* reserved */
+	char    reserved2[104];	/* reserved */
+	uint	mmcboot;	/*MMC Fast Boot control register*/
+	char    reserved2_1[52];	/* reserved */
 	uint    hostver;	/* Host controller version register */
 	char    reserved3[4];	/* reserved */
 	uint    dmaerraddr;	/* DMA error address register */
@@ -481,6 +483,11 @@ static int esdhc_init(struct mmc *mmc)
 	/* Wait until the controller is available */
 	while ((esdhc_read32(&regs->sysctl) & SYSCTL_RSTA) && --timeout)
 		udelay(1000);
+
+	if (!timeout)
+		printf("MMC/SD: Reset never completed.\n");
+
+	esdhc_write32(&regs->mmcboot, 0);
 
 #ifndef ARCH_MXC
 	/* Enable cache snooping */
