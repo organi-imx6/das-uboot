@@ -71,10 +71,15 @@ u32 spl_boot_device(void)
 /* called from spl_mmc to see type of boot mode for storage (RAW or FAT) */
 u32 spl_boot_mode(void)
 {
+	struct src *psrc = (struct src *)SRC_BASE_ADDR;
+	unsigned reg = readl(&psrc->sbmr1);
+
 	switch (spl_boot_device()) {
 	/* for MMC return either RAW or FAT mode */
 	case BOOT_DEVICE_MMC1:
 	case BOOT_DEVICE_MMC2:
+		if((reg>>4)&1)
+			return MMCSD_MODE_EMMCBOOT;
 #ifdef CONFIG_SPL_FAT_SUPPORT
 		return MMCSD_MODE_FAT;
 #else

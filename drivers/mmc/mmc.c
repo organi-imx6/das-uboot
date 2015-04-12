@@ -1299,8 +1299,8 @@ int mmc_start_init(struct mmc *mmc)
 	if (err)
 		return err;
 
-	mmc_set_bus_width(mmc, 1);
-	mmc_set_clock(mmc, 1);
+	mmc_set_bus_width(mmc, max(1, mmc->bus_width));
+	mmc_set_clock(mmc, max(1, mmc->clock));
 
 	/* Reset the Card */
 	err = mmc_go_idle(mmc);

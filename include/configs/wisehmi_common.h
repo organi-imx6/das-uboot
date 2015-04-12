@@ -5,6 +5,9 @@
 #define CONFIG_PACKIMG
 
 #ifdef CONFIG_BOOT_MMC
+
+#define CONFIG_SUPPORT_EMMC_BOOT /* eMMC specific */
+
 /*
 	MMC/SD data layout
 	1k:		SPL				63k

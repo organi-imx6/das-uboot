@@ -128,6 +128,43 @@ void spl_mmc_load_image(void)
 		hang();
 	}
 
+	boot_mode = spl_boot_mode();
+	if (boot_mode == MMCSD_MODE_EMMCBOOT) {
+		mmc->bus_width = 1;
+		mmc->clock = 20000000;
+		err = mmc_init(mmc);
+		if (err) {
+#ifdef CONFIG_SPL_LIBCOMMON_SUPPORT
+			printf("spl: mmc init failed: err - %d\n", err);
+#endif
+			hang();
+		}
+
+		if (spl_start_uboot()||mmc_load_image_raw_os(mmc)){
+			/*
+			 * We need to check what the partition is configured to.
+			 * 1 and 2 match up to boot0 / boot1 and 7 is user data
+			 * which is the first physical partition (0).
+			 */
+			int part = (mmc->part_config >> 3) & PART_ACCESS_MASK;
+
+			if (part == 7)
+				part = 0;
+
+			if (mmc_switch_part(0, part)) {
+#ifdef CONFIG_SPL_LIBCOMMON_SUPPORT
+				puts("MMC partition switch failed\n");
+#endif
+				hang();
+			}
+			err = mmc_load_image_raw(mmc,
+				CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR);
+			if (err)
+				hang();
+		}
+		return;
+	}
+
 	err = mmc_init(mmc);
 	if (err) {
 #ifdef CONFIG_SPL_LIBCOMMON_SUPPORT
@@ -136,7 +173,6 @@ void spl_mmc_load_image(void)
 		hang();
 	}
 
-	boot_mode = spl_boot_mode();
 	if (boot_mode == MMCSD_MODE_RAW) {
 		debug("boot mode - RAW\n");
 #ifdef CONFIG_SPL_OS_BOOT
@@ -154,30 +190,6 @@ void spl_mmc_load_image(void)
 		err = spl_load_image_fat(&mmc->block_dev,
 					CONFIG_SYS_MMC_SD_FAT_BOOT_PARTITION,
 					CONFIG_SPL_FAT_LOAD_PAYLOAD_NAME);
-#endif
-#ifdef CONFIG_SUPPORT_EMMC_BOOT
-	} else if (boot_mode == MMCSD_MODE_EMMCBOOT) {
-		/*
-		 * We need to check what the partition is configured to.
-		 * 1 and 2 match up to boot0 / boot1 and 7 is user data
-		 * which is the first physical partition (0).
-		 */
-		int part = (mmc->part_config >> 3) & PART_ACCESS_MASK;
-
-		if (part == 7)
-			part = 0;
-
-		if (mmc_switch_part(0, part)) {
-#ifdef CONFIG_SPL_LIBCOMMON_SUPPORT
-			puts("MMC partition switch failed\n");
-#endif
-			hang();
-		}
-#ifdef CONFIG_SPL_OS_BOOT
-		if (spl_start_uboot() || mmc_load_image_raw_os(mmc))
-#endif
-		err = mmc_load_image_raw(mmc,
-			CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR);
 #endif
 	} else {
 #ifdef CONFIG_SPL_LIBCOMMON_SUPPORT
