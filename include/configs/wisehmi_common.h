@@ -297,7 +297,7 @@
 /* SPL */
 #ifdef CONFIG_SPL
 
-#include "imx6_spl.h"
+#include "imx6_sdram_spl.h"
 
 #define CONFIG_SYS_SPL_ARGS_ADDR        CONFIG_SYS_SDRAM_BASE + 0x2000000
 
