@@ -10,9 +10,17 @@
 ifeq ($(SOC),$(filter $(SOC),mx25 mx35 mx5 mx6 vf610))
 obj-y	= iomux-v3.o
 endif
+ifeq ($(SOC),$(filter $(SOC),mx5))
+obj-y	+= timer.o
+endif
 ifeq ($(SOC),$(filter $(SOC),mx5 mx6))
-obj-y	+= timer.o cpu.o speed.o
+obj-y	+= cpu.o speed.o
 obj-$(CONFIG_SYS_I2C_MXC) += i2c-mxv7.o
+endif
+ifeq ($(SOC),$(filter $(SOC),mx6))
+ifneq ($(CONFIG_SPL_BUILD),y)
+obj-y   += timer.o
+endif
 endif
 ifeq ($(SOC),$(filter $(SOC),mx6 mxs))
 obj-y	+= misc.o
