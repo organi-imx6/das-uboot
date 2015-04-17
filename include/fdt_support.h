@@ -17,6 +17,7 @@ u32 fdt_getprop_u32_default_node(const void *fdt, int off, int cell,
 u32 fdt_getprop_u32_default(const void *fdt, const char *path,
 				const char *prop, const u32 dflt);
 int fdt_chosen(void *fdt);
+int fdt_set_chosen(void *fdt, char *bootargs, ulong *spl_start, ulong *spl_end);
 int fdt_initrd(void *fdt, ulong initrd_start, ulong initrd_end);
 void do_fixup_by_path(void *fdt, const char *path, const char *prop,
 		      const void *val, int len, int create);

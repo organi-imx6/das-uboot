@@ -301,6 +301,56 @@ int fdt_chosen(void *fdt)
 	return fdt_fixup_stdout(fdt, nodeoffset);
 }
 
+int fdt_set_chosen(void *fdt, char *bootargs, ulong *spl_start, ulong *spl_end)
+{
+	int nodeoffset;
+	int err, is_u64;
+
+	err = fdt_check_header(fdt);
+	if (err < 0) {
+		printf("fdt_chosen_add_bootargs: %s\n", fdt_strerror(err));
+		return err;
+	}
+
+	/* find or create "/chosen" node. */
+	nodeoffset = fdt_find_or_add_subnode(fdt, 0, "chosen");
+	if (nodeoffset < 0)
+		return nodeoffset;
+
+	if (bootargs) {
+		err = fdt_appendprop_string(fdt, nodeoffset, "bootargs", bootargs);
+		if (err < 0) {
+			printf("WARNING: could not append bootargs %s.\n", 
+				   fdt_strerror(err));
+			return err;
+		}
+	}
+
+	is_u64 = (get_cells_len(fdt, "#address-cells") == 8);
+
+	if (spl_start) {
+		err = fdt_setprop_uxx(fdt, nodeoffset, "uboot,spl-start",
+							  *spl_start, is_u64);
+		if (err < 0) {
+			printf("WARNING: could not set uboot,spl-start %s.\n", 
+				   fdt_strerror(err));
+			return err;
+		}
+	}
+
+	if (spl_end) {
+		err = fdt_setprop_uxx(fdt, nodeoffset, "uboot,spl-end",
+							  *spl_end, is_u64);
+		if (err < 0) {
+			printf("WARNING: could not set uboot,spl-end %s.\n", 
+				   fdt_strerror(err));
+			return err;
+		}
+	}
+
+	return 0;
+}
+
 void do_fixup_by_path(void *fdt, const char *path, const char *prop,
 		      const void *val, int len, int create)
 {

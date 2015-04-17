@@ -239,9 +239,17 @@ void spl_board_init(void)
 
 int spl_start_uboot(void)
 {
+	int ret;
 	// start uboot when console has input
 	mdelay(1);
-	return tstc();
+	ret = tstc();
+#ifdef CONFIG_SPL_SMP_BOOT
+	void smp_boot(void);
+	// cpu number = get_nr_cpus() + 1
+	if (!ret && get_nr_cpus() > 0)
+		smp_boot();
+#endif
+	return ret;
 }
 
 void reset_cpu(ulong addr)

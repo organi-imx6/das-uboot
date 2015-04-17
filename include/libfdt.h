@@ -1472,8 +1472,8 @@ static inline int fdt_appendprop_cell(void *fdt, int nodeoffset,
  *	-FDT_ERR_BADLAYOUT,
  *	-FDT_ERR_TRUNCATED, standard meanings
  */
-#define fdt_appendprop_string(fdt, nodeoffset, name, str) \
-	fdt_appendprop((fdt), (nodeoffset), (name), (str), strlen(str)+1)
+int fdt_appendprop_string(void *fdt, int nodeoffset, const char *name,
+						  const char *val);
 
 /**
  * fdt_delprop - delete a property

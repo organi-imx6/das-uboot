@@ -37,3 +37,7 @@ obj-$(CONFIG_TEGRA) += tegra-common/
 ifneq (,$(filter s5pc1xx exynos,$(SOC)))
 obj-y += s5p-common/
 endif
+
+ifeq ($(CONFIG_SPL_BUILD),y)
+obj-$(CONFIG_SPL_SMP_BOOT) += smp/
+endif

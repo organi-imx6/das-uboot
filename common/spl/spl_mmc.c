@@ -14,6 +14,10 @@
 #include <image.h>
 #include <fdt_support.h>
 
+#ifdef CONFIG_SPL_SMP_BOOT
+#include <asm/smp.h>
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 static int mmc_load_image_raw(struct mmc *mmc, unsigned long sector)
@@ -56,6 +60,71 @@ end:
 #if defined(CONFIG_SPL_PACKIMG)
 #include <packimg.h>
 
+int mmc_load_image_initrd(struct mmc *mmc)
+{
+#ifdef CONFIG_SYS_MMCSD_RAW_MODE_INITRD_SECTOR
+	int err, i, do_smp_boot = 0;
+	void *fdt;
+	struct pack_header *ph;
+	struct pack_entry *pe, *dpe = NULL;
+
+	err = mmc_load_packimg_header(mmc, CONFIG_SYS_MMCSD_RAW_MODE_INITRD_SECTOR);
+	if (err < 0)
+		return err;
+
+	ph = mmc_get_packimg_header();
+	pe = (struct pack_entry *)(ph + 1);
+
+	for (i = 0; i < ph->nentry; i++) {
+		if (strcmp(CONFIG_DEFAULT_INITRD_FILE, pe[i].name) == 0) {
+			dpe = pe + i;
+			break;
+		}
+	}
+
+	if (dpe == NULL) {
+#ifdef CONFIG_SPL_LIBCOMMON_SUPPORT
+		printf("no initrd packimg entry found\n");
+#endif
+		return -1;
+	}
+
+#ifdef CONFIG_SPL_SMP_BOOT
+	if (smp_boot_done == SMP_BOOT_DONE_SIGNATURE) {
+		smp_start_load_initrd = SMP_START_LOAD_INITRD_SIGNATURE;
+		do_smp_boot = 1;
+	}
+	else
+#endif
+	{
+		err = mmc_load_packimg_entry(mmc, CONFIG_SYS_MMCSD_RAW_MODE_INITRD_SECTOR, dpe);
+		if (err < 0)
+			return err;
+    }
+
+	fdt = (void *)CONFIG_SYS_SPL_ARGS_ADDR;
+	fdt_open_into(fdt, fdt, fdt_totalsize(fdt) + 0x10000);
+	fdt_initrd(fdt, dpe->ldaddr, dpe->ldaddr + dpe->size);
+
+	if (do_smp_boot) {
+		ulong spl_start = CONFIG_SPL_RANGE_BEGIN;
+		ulong spl_end = CONFIG_SPL_RANGE_END;
+
+		err = fdt_add_mem_rsv(fdt, CONFIG_SPL_RANGE_BEGIN, CONFIG_SPL_RANGE_END - CONFIG_SPL_RANGE_BEGIN);
+		if (err < 0)
+			printf("fdt reserve %x - %x fail\n", CONFIG_SPL_RANGE_BEGIN, CONFIG_SPL_RANGE_END);
+
+		err = fdt_set_chosen(fdt, " maxcpus=1", &spl_start, &spl_end);
+		if (err < 0)
+			printf("fdt change boot cpu number fail\n");
+	}	
+
+	fdt_pack(fdt);
+#endif /* CONFIG_SYS_MMCSD_RAW_MODE_INITRD_SECTOR */
+
+	return 0;
+}
+
 static int mmc_load_image_raw_os(struct mmc *mmc)
 {
 	pack_info_t packinfo[]={{.name = CONFIG_DEFAULT_FDT_FILE, },{.name = "zImage",.ldaddr=0, },{.name = NULL,}};
@@ -77,22 +146,7 @@ static int mmc_load_image_raw_os(struct mmc *mmc)
 	spl_image.os = IH_OS_LINUX;
 	spl_image.entry_point = packinfo[1].ldaddr;
 
-#ifdef CONFIG_SYS_MMCSD_RAW_MODE_INITRD_SECTOR
-	packinfo[0].name = CONFIG_DEFAULT_INITRD_FILE;
-	packinfo[0].ldaddr = 0;
-	packinfo[1].name = NULL;
-	if(mmc_load_packimg(mmc, CONFIG_SYS_MMCSD_RAW_MODE_INITRD_SECTOR, packinfo)==0 &&
-		packinfo[0].ldaddr!=0 && packinfo[0].size>0){
-
-		void *fdt = (void *)CONFIG_SYS_SPL_ARGS_ADDR;
-		fdt_open_into(fdt, fdt, fdt_totalsize(fdt)+0x10000);
-		fdt_initrd(fdt, packinfo[0].ldaddr, packinfo[0].ldaddr+packinfo[0].size);
-		fdt_pack(fdt);
-	}
-
-#endif
-
-	return 0;
+	return mmc_load_image_initrd(mmc);
 }
 #else
 static int mmc_load_image_raw_os(struct mmc *mmc)

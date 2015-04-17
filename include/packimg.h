@@ -33,6 +33,9 @@ int sf_load_packimg(struct spi_flash *flash, uint32_t offs, char *name);
 
 #if defined(CONFIG_SPL_MMC_SUPPORT)
 #include <mmc.h>
+struct pack_header *mmc_get_packimg_header(void);
+int mmc_load_packimg_header(struct mmc *mmc, uint32_t offs_sector);
+int mmc_load_packimg_entry(struct mmc *mmc, uint32_t offs_sector, struct pack_entry *pe);
 int mmc_load_packimg(struct mmc *mmc, uint32_t offs_sector, pack_info_t *info);
 #endif
 

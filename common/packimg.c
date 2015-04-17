@@ -74,60 +74,104 @@ int sf_load_packimg(struct spi_flash *flash, uint32_t offs, char *name)
 #include <mmc.h>
 #define ROUND_UP(n,log2)	(((n) + (1<<(log2)) - 1) >> (log2))
 
-int mmc_load_packimg(struct mmc *mmc, uint32_t offs_sector, pack_info_t *info)
+struct pack_header *mmc_get_packimg_header(void)
 {
-	struct pack_header *ph;
-	struct pack_entry *pe;
-	uint8_t *buf = (uint8_t *)CONFIG_SYS_TEXT_BASE-4096;
-	uint32_t crc, size;
-	int ret, i,j;
+	return (struct pack_header *)(CONFIG_SYS_TEXT_BASE - 0x1000);
+}
 
-	size = ROUND_UP(sizeof(buf),mmc->block_dev.log2blksz);
-	ret = mmc->block_dev.block_read(0, offs_sector, size, buf);
-	if(ret<0){
+int mmc_load_packimg_header(struct mmc *mmc, uint32_t offs_sector)
+{
+	struct pack_header *ph = mmc_get_packimg_header();
+	struct pack_entry *pe = (struct pack_entry *)(ph + 1);
+	uint32_t crc, size;
+	int ret;
+
+	size = ROUND_UP(sizeof(*pe) + sizeof(*ph) * MAX_PACK_ENTRY, 
+					mmc->block_dev.log2blksz);
+
+	ret = mmc->block_dev.block_read(0, offs_sector, size, (char *)ph);
+	if (ret < 0) {
 		printf("%s: load head failed\n", __FUNCTION__);
 		return ret;
 	}
-	ph = (struct pack_header *)buf;
-	pe = (struct pack_entry *)(ph+1);
 
 	// check valid header
-	if (ph->magic != PACK_MAGIC){
+	if (ph->magic != PACK_MAGIC) {
 		printf("mmc load packimg from sector 0x%x fail\n", offs_sector);
 		return -1;
 	}
 
 	crc = calc_crc(pe, ph->nentry * sizeof(*pe));
-	if (ph->crc != crc){
+	if (ph->crc != crc) {
 		printf("packimg head crc error 0x%x should be 0x%x\n", ph->crc, crc);
 		return -1;
 	}
-	if(ph->nentry>MAX_PACK_ENTRY){
+
+	if (ph->nentry > MAX_PACK_ENTRY) {
 		printf("Warning packimg entry %d bigger than %d\n", ph->nentry, MAX_PACK_ENTRY);
 		ph->nentry = MAX_PACK_ENTRY;
 	}
 
+	return 0;
+}
+
+int mmc_load_packimg_entry(struct mmc *mmc, uint32_t offs_sector, struct pack_entry *pe)
+{
+	uint32_t crc;
+	int err;
+
+	debug("load %s@0x%x to ram 0x%x\n", pe->name, 
+		  offs_sector + (pe->offset >> mmc->block_dev.log2blksz), 
+		  pe->ldaddr);
+
+	err = mmc->block_dev.block_read(0, 
+		  offs_sector + (pe->offset >> mmc->block_dev.log2blksz), 
+		  ROUND_UP(pe->size, mmc->block_dev.log2blksz), 
+		  (void *)pe->ldaddr);
+	if (err < 0) {
+		printf("load packimg entry fail\n");
+		return err;
+	}
+
+	/*
+	crc = calc_crc((void *)pe[i].ldaddr, pe[i].size);
+	if (pe[i].crc != crc){
+		printf("packimg data crc error 0x%x should be 0x%x\n", pe[i].crc, crc);
+		return -1;
+	}
+	*/
+
+	return 0;
+}
+
+int mmc_load_packimg(struct mmc *mmc, uint32_t offs_sector, pack_info_t *info)
+{
+	struct pack_header *ph;
+	struct pack_entry *pe;
+	int err, i, j;
+
+	err = mmc_load_packimg_header(mmc, offs_sector);
+	if (err < 0)
+		return err;
+
+	ph = mmc_get_packimg_header();
+	pe = (struct pack_entry *)(ph + 1);
+
 	// load all entries
-	for (i = 0; i < ph->nentry; i++){
-		for(j=0; info[j].name; j++){
-			if(strcmp(info[j].name, pe[i].name)==0){ //match name
+	for (i = 0; i < ph->nentry; i++) {
+		for (j = 0; info[j].name; j++) {
+			if (strcmp(info[j].name, pe[i].name) == 0) { //match name
 				info[j].ldaddr = pe[i].ldaddr;
 				info[j].size = pe[i].size;
-				printf("find %s @ 0x%x(size=0x%x)\n", info[j].name, info[j].ldaddr, info[j].size);
+				debug("find %s @ 0x%x(size=0x%x)\n", info[j].name, info[j].ldaddr, info[j].size);
 			}
 		}
 
-		debug("load %s@0x%x to ram 0x%x\n", pe[i].name, 
-			offs_sector+(pe[i].offset>>mmc->block_dev.log2blksz), pe[i].ldaddr);
-		mmc->block_dev.block_read(0, offs_sector+(pe[i].offset>>mmc->block_dev.log2blksz), 
-			ROUND_UP(pe[i].size, mmc->block_dev.log2blksz), (void *)pe[i].ldaddr);
-		//printf("done\n");
-		/*crc = calc_crc((void *)pe[i].ldaddr, pe[i].size);
-		if (pe[i].crc != crc){
-			printf("packimg data crc error 0x%x should be 0x%x\n", pe[i].crc, crc);
-			return -1;
-		}*/
+		err = mmc_load_packimg_entry(mmc, offs_sector, pe + i);
+		if (err < 0)
+			return err;
 	}
+
 	debug("load packimg success\n");
 	return 0;
 }
