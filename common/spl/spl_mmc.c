@@ -63,48 +63,43 @@ end:
 int mmc_load_image_initrd(struct mmc *mmc)
 {
 #ifdef CONFIG_SYS_MMCSD_RAW_MODE_INITRD_SECTOR
-	int err, i, do_smp_boot = 0;
+	int err, do_smp_boot = 0;
 	void *fdt;
 	struct pack_header *ph;
-	struct pack_entry *pe, *dpe = NULL;
+	struct pack_entry *pe;
 
 	err = mmc_load_packimg_header(mmc, CONFIG_SYS_MMCSD_RAW_MODE_INITRD_SECTOR);
-	if (err < 0)
+	if (err < 0) {
+#ifdef CONFIG_SPL_SMP_BOOT
+		if (imx_get_boot_arg() == SMP_BOOT_DONE_SIGNATURE) {
+			puts("abort smp boot\n");
+			imx_set_boot_arg(SMP_ABORT_BOOT_SIGNATURE);
+			mdelay(100);
+			imx_kill_secondary();
+		}
+#endif
 		return err;
+	}
 
 	ph = mmc_get_packimg_header();
 	pe = (struct pack_entry *)(ph + 1);
 
-	for (i = 0; i < ph->nentry; i++) {
-		if (strcmp(CONFIG_DEFAULT_INITRD_FILE, pe[i].name) == 0) {
-			dpe = pe + i;
-			break;
-		}
-	}
-
-	if (dpe == NULL) {
-#ifdef CONFIG_SPL_LIBCOMMON_SUPPORT
-		printf("no initrd packimg entry found\n");
-#endif
-		return -1;
-	}
-
 #ifdef CONFIG_SPL_SMP_BOOT
-	if (smp_boot_done == SMP_BOOT_DONE_SIGNATURE) {
-		smp_start_load_initrd = SMP_START_LOAD_INITRD_SIGNATURE;
+	if (imx_get_boot_arg() == SMP_BOOT_DONE_SIGNATURE) {
+		imx_set_boot_arg(SMP_START_LOAD_INITRD_SIGNATURE);
 		do_smp_boot = 1;
 	}
 	else
 #endif
 	{
-		err = mmc_load_packimg_entry(mmc, CONFIG_SYS_MMCSD_RAW_MODE_INITRD_SECTOR, dpe);
+		err = mmc_load_packimg_entry(mmc, CONFIG_SYS_MMCSD_RAW_MODE_INITRD_SECTOR, pe);
 		if (err < 0)
 			return err;
     }
 
 	fdt = (void *)CONFIG_SYS_SPL_ARGS_ADDR;
 	fdt_open_into(fdt, fdt, fdt_totalsize(fdt) + 0x10000);
-	fdt_initrd(fdt, dpe->ldaddr, dpe->ldaddr + dpe->size);
+	fdt_initrd(fdt, pe->ldaddr, pe->ldaddr + pe->size);
 
 	if (do_smp_boot) {
 		ulong spl_start = CONFIG_SPL_RANGE_BEGIN;
@@ -127,18 +122,23 @@ int mmc_load_image_initrd(struct mmc *mmc)
 
 static int mmc_load_image_raw_os(struct mmc *mmc)
 {
-	pack_info_t packinfo[]={{.name = CONFIG_DEFAULT_FDT_FILE, },{.name = "zImage",.ldaddr=0, },{.name = NULL,}};
+	int err;
+	pack_info_t packinfo[] = {
+		{.name = CONFIG_DEFAULT_FDT_FILE, },
+		{.name = "zImage",.ldaddr=0, },
+		{.name = NULL,}
+	};
 
 	if (mmc_load_packimg(mmc, CONFIG_SYS_MMCSD_RAW_MODE_PACKIMG_SECTOR, packinfo)) {
 		return -1;
 	}
 
-	if(packinfo[0].ldaddr!=CONFIG_SYS_SPL_ARGS_ADDR){
+	if (packinfo[0].ldaddr!=CONFIG_SYS_SPL_ARGS_ADDR) {
 		printf("FDT address(0x%x) must be 0x%x\n", packinfo[0].ldaddr, CONFIG_SYS_SPL_ARGS_ADDR);
 		return -1;
 	}
 
-	if(packinfo[1].ldaddr==0){
+	if (packinfo[1].ldaddr==0) {
 		printf("can't find kernel in packimg\n");
 		return -1;
 	}
@@ -146,7 +146,11 @@ static int mmc_load_image_raw_os(struct mmc *mmc)
 	spl_image.os = IH_OS_LINUX;
 	spl_image.entry_point = packinfo[1].ldaddr;
 
-	return mmc_load_image_initrd(mmc);
+	err = mmc_load_image_initrd(mmc);
+	if (err)
+		printf("load initrd fail %d\n", err);
+
+	return 0;
 }
 #else
 static int mmc_load_image_raw_os(struct mmc *mmc)

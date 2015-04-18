@@ -244,10 +244,10 @@ int spl_start_uboot(void)
 	mdelay(1);
 	ret = tstc();
 #ifdef CONFIG_SPL_SMP_BOOT
-	void smp_boot(void);
+	void imx_boot_secondary(void);
 	// cpu number = get_nr_cpus() + 1
 	if (!ret && get_nr_cpus() > 0)
-		smp_boot();
+		imx_boot_secondary();
 #endif
 	return ret;
 }
