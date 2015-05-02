@@ -133,6 +133,13 @@
 #define CONFIG_CMD_MTDPARTS
 #define CONFIG_NAND_MXS
 #define CONFIG_SYS_MAX_NAND_DEVICE	1
+
+#define CONFIG_MTD_PARTITIONS
+#define CONFIG_RBTREE	/*for UBI*/
+#define CONFIG_LZO
+#define CONFIG_CMD_UBI
+#define CONFIG_CMD_UBIFS
+
 #define CONFIG_SYS_NAND_BASE		0x40000000
 #define CONFIG_SYS_NAND_5_ADDR_CYCLE
 /*#define CONFIG_SYS_NAND_ONFI_DETECTION*/
@@ -197,7 +204,7 @@
         "sf probe && sf update ${loadaddr} 0 ${filesize}\0" \
 	"fl_uboot=sf probe && sf update ${loadaddr} 0x10000 ${filesize}\0" \
     "fl_env=sf probe && sf update ${loadaddr} 0x88000 ${filesize}\0" \
-	"fl_dtb=sf probe && sf update ${loadaddr} 0xC0000 ${filesize}\0" \
+	"fl_packimg=sf probe && sf update ${loadaddr} 0xC0000 ${filesize}\0" \
 	"fl_kernel=nand erase.part kernel && nand write ${loadaddr} kernel ${filesize}\0" \
     "fl_rootfs=nand erase.part rootfs && " \
 	"  ubi part rootfs && " \
@@ -207,17 +214,17 @@
     "tf_spl=setexpr tmpvar ${loadaddr} + 0x400 && tftp ${tmpvar} SPL && run fl_spl\0" \
 	"tf_uboot=tftp ${loadaddr} u-boot.img && run fl_uboot\0" \
 	"tf_env=tftp ${loadaddr} rbctrl.env && run fl_env\0" \
-	"tf_dtb=tftp ${loadaddr} ${fdt_file} && run fl_dtb\0" \
+	"tf_packimg=tftp ${loadaddr} pack.img && run fl_packimg\0" \
 	"tf_kernel=tftp ${loadaddr} ${image} && run fl_kernel\0" \
 	"tf_rootfs=tftp ${loadaddr} rootfs.img && run fl_rootfs\0" \
     \
 	"mf_spl=fatload mmc 0 ${loadaddr} SPL && run fl_spl\0" \
 	"mf_uboot=fatload mmc 0 ${loadaddr} u-boot.img && run fl_uboot\0" \
 	"mf_env=fatload mmc 0 ${loadaddr} rbctrl.env && run fl_env\0" \
-	"mf_dtb=fatload mmc 0 ${loadaddr} ${fdt_file} && run fl_dtb\0" \
+	"mf_packimg=fatload mmc 0 ${loadaddr} pack.img && run fl_packimg\0" \
 	"mf_kernel=fatload mmc 0 ${loadaddr} ${image} && run fl_kernel\0" \
 	"mf_rootfs=fatload mmc 0 ${loadaddr} rootfs.img && run fl_rootfs\0" \
-	"mf_all=run mf_spl && run mf_uboot && run mf_dtb && run mf_kernel && run mf_rootfs\0" \
+	"mf_all=run mf_spl && run mf_uboot && run mf_packimg && run mf_kernel && run mf_rootfs\0" \
 
 
 #define CONFIG_BOOTCOMMAND \
