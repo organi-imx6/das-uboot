@@ -134,12 +134,12 @@ int mmc_load_packimg_entry(struct mmc *mmc, uint32_t offs_sector, struct pack_en
 	}
 
 	/*
-	crc = calc_crc((void *)pe[i].ldaddr, pe[i].size);
-	if (pe[i].crc != crc){
-		printf("packimg data crc error 0x%x should be 0x%x\n", pe[i].crc, crc);
+	crc = calc_crc((void *)pe->ldaddr, pe->size);
+	if (pe->crc != crc){
+		printf("packimg data crc error 0x%x should be 0x%x\n", pe->crc, crc);
 		return -1;
 	}
-	*/
+	//*/
 
 	return 0;
 }
