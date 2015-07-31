@@ -4,6 +4,11 @@
 #define CONFIG_SPL_PACKIMG
 #define CONFIG_PACKIMG
 
+#ifdef CONFIG_AES_PACKIMG
+#define CONFIG_AES
+#define CONFIG_MXC_OCOTP
+#endif
+
 #ifdef CONFIG_BOOT_MMC
 
 #define CONFIG_SUPPORT_EMMC_BOOT /* eMMC specific */
@@ -26,13 +31,20 @@
 #define CONFIG_ENV_IS_IN_MMC
 #define CONFIG_SYS_MMC_ENV_DEV	0
 #define CONFIG_ENV_OFFSET       ((CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR+CONFIG_SYS_U_BOOT_MAX_SIZE_SECTORS)*512)
+
+#ifdef CONFIG_AES_PACKIMG
+#define CMD_FLASH_KERNEL	"fl_kernel=run round_mmcblk && setexpr len ${nblock} * 0x200 && encrypt ${loadaddr} ${len} && mmc write ${loadaddr} 0x800 ${nblock}\0"
+#else
+#define CMD_FLASH_KERNEL	"fl_kernel=run round_mmcblk && mmc write ${loadaddr} 0x800 ${nblock}\0"
+#endif
+
 #define CONFIG_FL_DEFAULT_ENV	\
 	"image=pImage\0" \
-	"round_mmcblk=setexpr tmpvar ${filesize} + 0x1ff && setexpr tmpvar ${tmpvar} / 0x200\0" \
-	"fl_spl=run round_mmcblk && mmc write ${loadaddr} 2 ${tmpvar}\0" \
-	"fl_uboot=run round_mmcblk && mmc write ${loadaddr} 0x80 ${tmpvar}\0" \
-	"fl_kernel=run round_mmcblk && mmc write ${loadaddr} 0x800 ${tmpvar}\0" \
-	"fl_initroot=run round_mmcblk && mmc write ${loadaddr} 0x3000 ${tmpvar}\0" \
+	"round_mmcblk=setexpr nblock ${filesize} + 0x1ff && setexpr nblock ${nblock} / 0x200\0" \
+	"fl_spl=run round_mmcblk && mmc write ${loadaddr} 2 ${nblock}\0" \
+	"fl_uboot=run round_mmcblk && mmc write ${loadaddr} 0x80 ${nblock}\0" \
+	CMD_FLASH_KERNEL\
+	"fl_initroot=run round_mmcblk && mmc write ${loadaddr} 0x3000 ${nblock}\0" \
 	\
     "tf_spl=tftp ${loadaddr} SPL && run fl_spl\0" \
 
@@ -305,6 +317,8 @@
 #define CONFIG_SYS_SPL_SPLASH_ADDR      CONFIG_SYS_SDRAM_BASE + 0x3000000
 
 #define CONFIG_SYS_SPL_INITRD_ADDR      (CONFIG_SYS_SDRAM_BASE + 0x3800000)
+#define CONFIG_SPL_TLB_ADDRESS			(CONFIG_SYS_SDRAM_BASE+PHYS_SDRAM_SIZE-0x10000)
+#define CONFIG_SYS_L2CACHE_OFF			/*No L2 cache */
 
 #define CONFIG_SPL_OS_BOOT
 #define CONFIG_SPL_BOARD_INIT

@@ -655,3 +655,26 @@ void aes_cbc_decrypt_blocks(u8 *key_exp, u8 *src, u8 *dst, u32 num_aes_blocks)
 		dst += AES_KEY_LENGTH;
 	}
 }
+
+void aes_encrypt_blocks(u8 *key_exp, u8 *src, u8 *dst, u32 num_aes_blocks)
+{
+	u32 i;
+	for (i = 0; i < num_aes_blocks; i++) {
+		aes_encrypt(src, key_exp, dst);
+
+		src += AES_KEY_LENGTH;
+		dst += AES_KEY_LENGTH;
+	}
+}
+
+void aes_decrypt_blocks(u8 *key_exp, u8 *src, u8 *dst, u32 num_aes_blocks)
+{
+	u32 i;
+	for (i = 0; i < num_aes_blocks; i++) {
+		aes_decrypt(src, key_exp, dst);
+
+		src += AES_KEY_LENGTH;
+		dst += AES_KEY_LENGTH;
+	}
+}
+

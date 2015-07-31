@@ -91,4 +91,7 @@ void aes_cbc_encrypt_blocks(u8 *key_exp, u8 *src, u8 *dst, u32 num_aes_blocks);
  */
 void aes_cbc_decrypt_blocks(u8 *key_exp, u8 *src, u8 *dst, u32 num_aes_blocks);
 
+void aes_encrypt_blocks(u8 *key_exp, u8 *src, u8 *dst, u32 num_aes_blocks);
+void aes_decrypt_blocks(u8 *key_exp, u8 *src, u8 *dst, u32 num_aes_blocks);
+
 #endif /* _AES_REF_H_ */
