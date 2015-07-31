@@ -1,4 +1,4 @@
-#define DEBUG
+//#define DEBUG
 #include <common.h>
 #include <packimg.h>
 #include <aes-packimg.h>
