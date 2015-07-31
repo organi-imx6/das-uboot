@@ -140,7 +140,7 @@ int mmc_load_packimg_entry(struct mmc *mmc, uint32_t offs_sector, struct pack_en
 
 	aes_dec(pe->ldaddr, nblk<<mmc->block_dev.log2blksz);
 
-#if 1
+#if 0
 	crc = calc_crc((void *)pe->ldaddr, pe->size);
 	if (pe->crc != crc){
 		printf("packimg data crc error 0x%x should be 0x%x\n", pe->crc, crc);

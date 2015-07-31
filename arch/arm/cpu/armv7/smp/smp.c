@@ -68,6 +68,9 @@ static inline void cpu_enter_lowpower(void)
 	  : "=&r" (v)
 	  : "r" (0), "Ir" (CR_C), "Ir" (0x40)
 	  : "cc");
+
+	// SCU CPU status, 0=normal, 2=dormant, 3=poweroff
+	//writeb(3, (void *)(SCU_BASE_ADDR + 0x08 + 1));
 }
 
 static inline void arch_hlt(void)
