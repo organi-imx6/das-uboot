@@ -100,6 +100,7 @@ int mmc_load_image_initrd(struct mmc *mmc)
 	fdt = (void *)CONFIG_SYS_SPL_ARGS_ADDR;
 	fdt_open_into(fdt, fdt, fdt_totalsize(fdt) + 0x10000);
 	fdt_initrd(fdt, pe->ldaddr, pe->ldaddr + pe->size);
+	fdt_fixup_memory(fdt, CONFIG_SYS_SDRAM_BASE, PHYS_SDRAM_SIZE);
 
 	if (do_smp_boot) {
 		ulong spl_start = CONFIG_SPL_RANGE_BEGIN;
