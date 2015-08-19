@@ -60,11 +60,10 @@ end:
 #if defined(CONFIG_SPL_PACKIMG)
 #include <packimg.h>
 
-int mmc_load_image_initrd(struct mmc *mmc)
+int mmc_load_image_initrd(struct mmc *mmc, void *fdt)
 {
 #ifdef CONFIG_SYS_MMCSD_RAW_MODE_INITRD_SECTOR
 	int err, do_smp_boot = 0;
-	void *fdt;
 	struct pack_header *ph;
 	struct pack_entry *pe;
 
@@ -95,12 +94,9 @@ int mmc_load_image_initrd(struct mmc *mmc)
 		err = mmc_load_packimg_entry(mmc, CONFIG_SYS_MMCSD_RAW_MODE_INITRD_SECTOR, pe);
 		if (err < 0)
 			return err;
-    }
+	}
 
-	fdt = (void *)CONFIG_SYS_SPL_ARGS_ADDR;
-	fdt_open_into(fdt, fdt, fdt_totalsize(fdt) + 0x10000);
 	fdt_initrd(fdt, pe->ldaddr, pe->ldaddr + pe->size);
-	fdt_fixup_memory(fdt, CONFIG_SYS_SDRAM_BASE, PHYS_SDRAM_SIZE);
 
 	if (do_smp_boot) {
 		ulong spl_start = CONFIG_SPL_RANGE_BEGIN;
@@ -115,7 +111,6 @@ int mmc_load_image_initrd(struct mmc *mmc)
 			printf("fdt change boot cpu number fail\n");
 	}	
 
-	fdt_pack(fdt);
 #endif /* CONFIG_SYS_MMCSD_RAW_MODE_INITRD_SECTOR */
 
 	return 0;
@@ -124,6 +119,7 @@ int mmc_load_image_initrd(struct mmc *mmc)
 static int mmc_load_image_raw_os(struct mmc *mmc)
 {
 	int err;
+	void *fdt;
 	pack_info_t packinfo[] = {
 		{.name = CONFIG_DEFAULT_FDT_FILE, },
 		{.name = "zImage",.ldaddr=0, },
@@ -147,7 +143,12 @@ static int mmc_load_image_raw_os(struct mmc *mmc)
 	spl_image.os = IH_OS_LINUX;
 	spl_image.entry_point = packinfo[1].ldaddr;
 
-	err = mmc_load_image_initrd(mmc);
+	fdt = (void *)CONFIG_SYS_SPL_ARGS_ADDR;
+	fdt_open_into(fdt, fdt, fdt_totalsize(fdt) + 0x10000);
+	fdt_fixup_memory(fdt, CONFIG_SYS_SDRAM_BASE, PHYS_SDRAM_SIZE);
+
+	err = mmc_load_image_initrd(mmc, fdt);
+	fdt_pack(fdt);
 	if (err)
 		printf("load initrd fail %d\n", err);
 
