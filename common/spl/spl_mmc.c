@@ -120,37 +120,34 @@ static int mmc_load_image_raw_os(struct mmc *mmc)
 {
 	int err;
 	void *fdt;
-	pack_info_t packinfo[] = {
-		{.name = CONFIG_DEFAULT_FDT_FILE, },
-		{.name = "zImage",.ldaddr=0, },
-		{.name = NULL,}
-	};
+	struct pack_entry *fdt_pe, *kernel_pe;
 
-	if (mmc_load_packimg(mmc, CONFIG_SYS_MMCSD_RAW_MODE_PACKIMG_SECTOR, packinfo)) {
+	if ((err = mmc_load_packimg(mmc, CONFIG_SYS_MMCSD_RAW_MODE_PACKIMG_SECTOR)) < 0)
+		return err;
+
+	fdt_pe = mmc_get_packimg_entry_by_name(CONFIG_DEFAULT_FDT_FILE);
+	kernel_pe = mmc_get_packimg_entry_by_name(CONFIG_DEFAULT_KERNEL_FILE);
+	if (!fdt_pe || !kernel_pe) {
+		printf("Bad FDT&kernel packimg\n");
 		return -1;
 	}
 
-	if (packinfo[0].ldaddr!=CONFIG_SYS_SPL_ARGS_ADDR) {
-		printf("FDT address(0x%x) must be 0x%x\n", packinfo[0].ldaddr, CONFIG_SYS_SPL_ARGS_ADDR);
-		return -1;
-	}
-
-	if (packinfo[1].ldaddr==0) {
-		printf("can't find kernel in packimg\n");
+	if (fdt_pe->ldaddr != CONFIG_SYS_SPL_ARGS_ADDR) {
+		printf("FDT address(0x%x) must be 0x%x\n", fdt_pe->ldaddr, CONFIG_SYS_SPL_ARGS_ADDR);
 		return -1;
 	}
 
 	spl_image.os = IH_OS_LINUX;
-	spl_image.entry_point = packinfo[1].ldaddr;
+	spl_image.entry_point = kernel_pe->ldaddr;
 
 	fdt = (void *)CONFIG_SYS_SPL_ARGS_ADDR;
 	fdt_open_into(fdt, fdt, fdt_totalsize(fdt) + 0x10000);
 	fdt_fixup_memory(fdt, CONFIG_SYS_SDRAM_BASE, PHYS_SDRAM_SIZE);
 
-	err = mmc_load_image_initrd(mmc, fdt);
-	fdt_pack(fdt);
-	if (err)
+	if ((err = mmc_load_image_initrd(mmc, fdt)) < 0)
 		printf("load initrd fail %d\n", err);
+
+	fdt_pack(fdt);
 
 	return 0;
 }

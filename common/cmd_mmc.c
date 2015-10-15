@@ -8,6 +8,7 @@
 #include <common.h>
 #include <command.h>
 #include <mmc.h>
+#include <packimg.h>
 
 static int curr_device = -1;
 #ifndef CONFIG_GENERIC_MMC
@@ -591,6 +592,55 @@ static int do_mmc_setdsr(cmd_tbl_t *cmdtp, int flag,
 	return ret;
 }
 
+#ifdef CONFIG_CMD_MMC_PACKIMG
+static void set_packimg_env(int i, struct pack_entry *pe)
+{
+	char *addr = "file1_addr";
+	char *size = "file1_size";
+	addr[4] = '1' + i;
+	size[4] = '1' + i;
+	setenv_hex(addr, pe->ldaddr);
+	setenv_hex(size, pe->size);
+}
+
+static int do_mmc_packimg(cmd_tbl_t *cmdtp, int flag,
+			 int argc, char * const argv[])
+{
+	struct mmc *mmc;
+	u32 blk;
+	int i, err;
+	struct pack_entry *pe;
+
+	if (argc < 2)
+		return CMD_RET_USAGE;
+
+	blk = simple_strtoul(argv[1], NULL, 16);
+
+	mmc = init_mmc_device(curr_device, false);
+	if (!mmc)
+		return CMD_RET_FAILURE;
+
+	if ((err = mmc_load_packimg(mmc, blk)) < 0)
+		return CMD_RET_FAILURE;
+
+	if (argc == 3 && strcmp(argv[2], "any") == 0) {
+		for (i = 0; (pe = mmc_get_packimg_entry_by_index(i)) != NULL; i++)
+			set_packimg_env(i, pe);
+	}
+	else {
+		for (i = 0; i < argc - 2; i++) {
+			if ((pe = mmc_get_packimg_entry_by_name(argv[i + 2])) == NULL) {
+				printf("no %s found in packimg\n", argv[i + 2]);
+				return CMD_RET_FAILURE;
+			}
+			set_packimg_env(i, pe);
+		}
+	}
+
+	return 0;
+}
+#endif
+
 static cmd_tbl_t cmd_mmc[] = {
 	U_BOOT_CMD_MKENT(info, 1, 0, do_mmcinfo, "", ""),
 	U_BOOT_CMD_MKENT(read, 4, 1, do_mmc_read, "", ""),
@@ -610,6 +660,9 @@ static cmd_tbl_t cmd_mmc[] = {
 	U_BOOT_CMD_MKENT(rpmb, CONFIG_SYS_MAXARGS, 1, do_mmcrpmb, "", ""),
 #endif
 	U_BOOT_CMD_MKENT(setdsr, 2, 0, do_mmc_setdsr, "", ""),
+#ifdef CONFIG_CMD_MMC_PACKIMG
+	U_BOOT_CMD_MKENT(packimg, 7, 1, do_mmc_packimg, "", ""),
+#endif
 };
 
 static int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
@@ -667,6 +720,9 @@ U_BOOT_CMD(
 	"mmc rpmb counter - read the value of the write counter\n"
 #endif
 	"mmc setdsr <value> - set DSR register value\n"
+#ifdef CONFIG_CMD_MMC_PACKIMG
+	"mmc packimg blk# [file1] [file2] ...\n"
+#endif
 	);
 
 /* Old command kept for compatibility. Same as 'mmc info' */

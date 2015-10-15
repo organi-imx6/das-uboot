@@ -131,6 +131,7 @@
 
 #define CONFIG_MMC
 #define CONFIG_CMD_MMC
+#define CONFIG_CMD_MMC_PACKIMG
 #define CONFIG_GENERIC_MMC
 #define CONFIG_CMD_EXT2
 #define CONFIG_CMD_FAT
@@ -200,6 +201,7 @@
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
+	"kernel_file=" CONFIG_DEFAULT_KERNEL_FILE "\0" \
 	"initrd_file=" CONFIG_DEFAULT_INITRD_FILE ".pack\0" \
 	"fdt_addr=0x18000000\0" \
 	"initrd_addr=0x13800000\0" \
@@ -212,12 +214,16 @@
 	"console=" CONFIG_CONSOLE_DEV "\0" \
 	"mmcdev=0\0" \
 	"mmcpart=1\0" \
-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
-	"mmcargs=setenv bootargs console=${console},${baudrate} root=${mmcroot}\0" \
-	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
-	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
-	"loadinitrd=fatload mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${initrd_file} && setenv initrd_filesize ${filesize}\0" \
-	"mmcboot=run mmcargs && bootm ${loadaddr} - ${fdt_addr}\0" \
+	"loadimage=" \
+		"mmc packimg 0x800 ${fdt_file} ${kernel_file} && " \
+		"setenv fdt_addr ${file1_addr} && " \
+		"setenv kernel_addr ${file2_addr}\0" \
+	"mmcboot=" \
+		"if mmc packimg 0x3000 any; then " \
+	    	"bootz ${kernel_addr} ${file1_addr}:${file2_size} ${fdt_addr}; " \
+		"else " \
+			"bootz ${kernel_addr} - ${fdt_addr}; " \
+		"fi\0"										   \
     \
 	"netargs=setenv bootargs console=${console},${baudrate} root=/dev/nfs rw " \
 		"ip=${ipaddr}:${serverip}:${gateway}:${netmask}:wisehmi:eth0:off " \
@@ -245,17 +251,11 @@
         "sf erase 0 +${tmpvar} && sf write ${loadaddr} 0x400 ${filesize}\0"
 
 #define CONFIG_BOOTCOMMAND \
-	"mmc dev ${mmcdev};" \
-	"if mmc rescan; then " \
-		"if run loadbootscript; then " \
-		"run bootscript; " \
-		"else " \
-			"if run loadimage; then " \
-				"run mmcboot; " \
-			"else run netboot; " \
-			"fi; " \
-		"fi; " \
-	"else run netboot; fi"
+	"mmc dev ${mmcdev}; " \
+	"if run loadimage; then " \
+	    "run mmcboot; " \
+	"fi; " \
+	"run netboot"
 
 #define CONFIG_ARP_TIMEOUT     200UL
 

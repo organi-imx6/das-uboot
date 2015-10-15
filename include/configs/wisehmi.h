@@ -11,7 +11,7 @@
 #endif
 #define CONFIG_FDT_FILE_SIZE 40960
 #define CONFIG_DEFAULT_SPLASH_FILE "splash.bin"
-#define CONFIG_DEFAULT_KERNEL_FILE "uImage"
+#define CONFIG_DEFAULT_KERNEL_FILE "zImage"
 #define CONFIG_DEFAULT_INITRD_FILE "initramfs.cpio"
 #define CONFIG_MMCROOT			"/dev/mmcblk0p2"
 #define PHYS_SDRAM_SIZE		(CONFIG_DDR_MB * 1024 * 1024)

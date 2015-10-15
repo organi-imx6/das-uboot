@@ -71,7 +71,7 @@ int sf_load_packimg(struct spi_flash *flash, uint32_t offs, char *name)
 }
 #endif //#if defined(CONFIG_SPL_SPI_SUPPORT)
 
-#if defined(CONFIG_SPL_MMC_SUPPORT)
+#if (!defined(CONFIG_SPL_BUILD) && defined(CONFIG_CMD_MMC_PACKIMG)) || defined(CONFIG_SPL_MMC_SUPPORT)
 
 #include <mmc.h>
 #define ROUND_UP(n,log2)	(((n) + (1<<(log2)) - 1) >> (log2))
@@ -79,6 +79,30 @@ int sf_load_packimg(struct spi_flash *flash, uint32_t offs, char *name)
 struct pack_header *mmc_get_packimg_header(void)
 {
 	return (struct pack_header *)(CONFIG_SYS_TEXT_BASE - 0x1000);
+}
+
+struct pack_entry *mmc_get_packimg_entry_by_name(const char *name)
+{
+	struct pack_header *ph = mmc_get_packimg_header();
+	struct pack_entry *pe = (struct pack_entry *)(ph + 1);
+	int i;
+
+	for (i = 0; i < ph->nentry; i++)
+		if (strcmp(name, pe[i].name) == 0)
+			return pe + i;
+
+	return NULL;
+}
+
+struct pack_entry *mmc_get_packimg_entry_by_index(int index)
+{
+	struct pack_header *ph = mmc_get_packimg_header();
+	struct pack_entry *pe = (struct pack_entry *)(ph + 1);
+
+	if (index > 0 && index < ph->nentry)
+		return pe + index;
+
+	return NULL;
 }
 
 int mmc_load_packimg_header(struct mmc *mmc, uint32_t offs_sector)
@@ -150,11 +174,11 @@ int mmc_load_packimg_entry(struct mmc *mmc, uint32_t offs_sector, struct pack_en
 	return 0;
 }
 
-int mmc_load_packimg(struct mmc *mmc, uint32_t offs_sector, pack_info_t *info)
+int mmc_load_packimg(struct mmc *mmc, uint32_t offs_sector)
 {
 	struct pack_header *ph;
 	struct pack_entry *pe;
-	int err, i, j;
+	int err, i;
 
 	init_aes();
 
@@ -167,14 +191,6 @@ int mmc_load_packimg(struct mmc *mmc, uint32_t offs_sector, pack_info_t *info)
 
 	// load all entries
 	for (i = 0; i < ph->nentry; i++) {
-		for (j = 0; info[j].name; j++) {
-			if (strcmp(info[j].name, pe[i].name) == 0) { //match name
-				info[j].ldaddr = pe[i].ldaddr;
-				info[j].size = pe[i].size;
-				debug("find %s @ 0x%x(size=0x%x)\n", info[j].name, info[j].ldaddr, info[j].size);
-			}
-		}
-
 		err = mmc_load_packimg_entry(mmc, offs_sector, pe + i);
 		if (err < 0)
 			return err;
