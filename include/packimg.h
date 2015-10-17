@@ -43,10 +43,3 @@ int nand_packimg_write(nand_info_t *nand, uint32_t nand_off, uint32_t nand_size,
 #endif
 
 #endif
-
-
-
-
-
-
-

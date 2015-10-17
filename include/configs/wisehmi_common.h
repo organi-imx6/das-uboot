@@ -18,7 +18,7 @@
 
 /*
 	MMC/SD data layout
-	1k:		SPL				63k
+	1k:		SPL			63k
 	64k:		u-boot.img		512k
 	576k:	env				448k
 	1M:		pack(dtb,zImage)	5M
@@ -26,7 +26,7 @@
 	64M		partition2(rootfs)
 */
 #define CONFIG_SYS_MMCSD_RAW_MODE_SPL_SECTOR	2 /* offset 1KB */
-#define CONFIG_SYS_SPL_MAX_SIZE_SECTOR			126 /* 63KB */
+#define CONFIG_SYS_SPL_MAX_SIZE_SECTOR		126 /* 63KB */
 #define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR	(CONFIG_SYS_MMCSD_RAW_MODE_SPL_SECTOR+CONFIG_SYS_SPL_MAX_SIZE_SECTOR) /* offset 128KB */
 #define CONFIG_SYS_U_BOOT_MAX_SIZE_SECTORS	1024 /* 512 KB */
 #define CONFIG_SYS_MMC_SD_FAT_BOOT_PARTITION	1
@@ -41,15 +41,15 @@
 #define CMD_FLASH_KERNEL	"fl_kernel=run round_mmcblk && mmc write ${loadaddr} 0x800 ${nblock}\0"
 #endif
 
-#define CONFIG_FL_DEFAULT_ENV	\
+#define CONFIG_FL_DEFAULT_ENV \
 	"image=pImage\0" \
 	"round_mmcblk=setexpr nblock ${filesize} + 0x1ff && setexpr nblock ${nblock} / 0x200\0" \
 	"fl_spl=run round_mmcblk && mmc write ${loadaddr} 2 ${nblock}\0" \
 	"fl_uboot=run round_mmcblk && mmc write ${loadaddr} 0x80 ${nblock}\0" \
-	CMD_FLASH_KERNEL\
+	CMD_FLASH_KERNEL \
 	"fl_initroot=run round_mmcblk && mmc write ${loadaddr} 0x3000 ${nblock}\0" \
 	\
-    "tf_spl=tftp ${loadaddr} SPL && run fl_spl\0" \
+	"tf_spl=tftp ${loadaddr} SPL && run fl_spl\0" \
 
 #ifdef CONFIG_SPL_BUILD
 #define CONFIG_SPL_MMC_SUPPORT
@@ -61,24 +61,24 @@
 #define CONFIG_ENV_IS_IN_NAND
 #define CONFIG_ENV_OFFSET       (7 * 128 * 1024)
 #define CONFIG_ENV_RANGE        (3 * 128 * 1024)
-#define CONFIG_FL_DEFAULT_ENV	\
+#define CONFIG_FL_DEFAULT_ENV \
 	"image=" CONFIG_DEFAULT_KERNEL_FILE "\0" \
 	"mtdids=nand0=gpmi-nand\0" \
-    "mtdparts=mtdparts=gpmi-nand:128k(spl),768k(uboot),384k(env)," \
-        "384k(dtb),7680k(kernel),-(rootfs)\0" \
-    \
+	"mtdparts=mtdparts=gpmi-nand:128k(spl),768k(uboot),384k(env)," \
+		"384k(dtb),7680k(kernel),-(rootfs)\0" \
+	\
 	"fl_spl=mw.b ${loadaddr} 0xff 0x400 && setexpr tmpvar ${filesize} + 0x400 && " \
-        "nand erase.part spl && nand write ${loadaddr} 0 ${tmpvar}\0" \
+	"nand erase.part spl && nand write ${loadaddr} 0 ${tmpvar}\0" \
 	"fl_uboot=nand erase.part uboot && nand write ${loadaddr} uboot ${filesize}\0" \
-    "fl_env=nand erase.part env && nand write ${loadaddr} env ${filesize}\0" \
+	"fl_env=nand erase.part env && nand write ${loadaddr} env ${filesize}\0" \
 	"fl_dtb=nand erase.part dtb && nand write ${loadaddr} dtb ${filesize}\0" \
 	"fl_kernel=nand erase.part kernel && nand write ${loadaddr} kernel ${filesize}\0" \
-    "fl_rootfs=nand erase.part rootfs && " \
-	"  ubi part rootfs && " \
-	"  ubi create rootfs && " \
-	"  ubi write ${loadaddr} rootfs ${filesize}\0" \
+	"fl_rootfs=nand erase.part rootfs && " \
+		"ubi part rootfs && " \
+		"ubi create rootfs && " \
+		"ubi write ${loadaddr} rootfs ${filesize}\0" \
 	\
-    "tf_spl=setexpr tmpvar ${loadaddr} + 0x400 && tftp ${tmpvar} SPL && run fl_spl\0" \
+	"tf_spl=setexpr tmpvar ${loadaddr} + 0x400 && tftp ${tmpvar} SPL && run fl_spl\0" \
 
 #ifdef CONFIG_SPL_BUILD
 #define CONFIG_SPL_NAND_SUPPORT
@@ -220,14 +220,14 @@
 		"setenv kernel_addr ${file2_addr}\0" \
 	"mmcboot=" \
 		"if mmc packimg 0x3000 any; then " \
-	    	"bootz ${kernel_addr} ${file1_addr}:${file2_size} ${fdt_addr}; " \
+			"bootz ${kernel_addr} ${file1_addr}:${file2_size} ${fdt_addr}; " \
 		"else " \
 			"bootz ${kernel_addr} - ${fdt_addr}; " \
-		"fi\0"										   \
-    \
+		"fi\0" \
+	\
 	"netargs=setenv bootargs console=${console},${baudrate} root=/dev/nfs rw " \
 		"ip=${ipaddr}:${serverip}:${gateway}:${netmask}:wisehmi:eth0:off " \
-	    "nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
+		"nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
 	"netboot=run netargs && tftp ${image} && tftp ${fdt_addr} ${fdt_file} && " \
 		"bootm ${loadaddr} - ${fdt_addr}\0" \
 	CONFIG_FL_DEFAULT_ENV \
@@ -237,7 +237,7 @@
 	"tf_kernel=tftp ${loadaddr} ${image} && run fl_kernel\0" \
 	"tf_initroot=tftp ${loadaddr} ${initrd_file} && run fl_initroot\0" \
 	"tf_rootfs=tftp ${loadaddr} rootfs.img && run fl_rootfs\0" \
-    \
+	\
 	"mf_spl=fatload mmc 0 ${loadaddr} SPL && run fl_spl\0" \
 	"mf_uboot=fatload mmc 0 ${loadaddr} u-boot.img && run fl_uboot\0" \
 	"mf_env=fatload mmc 0 ${loadaddr} wisehmi.env && run fl_env\0" \
@@ -248,12 +248,12 @@
 	\
 	"sffile=SPL\0" \
 	"burn_sf=tftp ${sffile} && sf probe && setexpr tmpvar ${filesize} + 0x400 && " \
-        "sf erase 0 +${tmpvar} && sf write ${loadaddr} 0x400 ${filesize}\0"
+	"sf erase 0 +${tmpvar} && sf write ${loadaddr} 0x400 ${filesize}\0"
 
 #define CONFIG_BOOTCOMMAND \
 	"mmc dev ${mmcdev}; " \
 	"if run loadimage; then " \
-	    "run mmcboot; " \
+		"run mmcboot; " \
 	"fi; " \
 	"run netboot"
 
@@ -353,4 +353,4 @@
 
 #endif /* CONFIG_SPL */
 
-#endif                         /* __WISEHMI_COMMON_CONFIG_H */
+#endif /* __WISEHMI_COMMON_CONFIG_H */

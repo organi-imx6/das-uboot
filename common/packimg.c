@@ -145,17 +145,17 @@ int mmc_load_packimg_header(struct mmc *mmc, uint32_t offs_sector)
 
 int mmc_load_packimg_entry(struct mmc *mmc, uint32_t offs_sector, struct pack_entry *pe)
 {
-	uint32_t crc, nblk;
+	uint32_t nblk;
 	int err;
 
-	debug("load %s@0x%x to ram 0x%x\n", pe->name, 
-		  offs_sector + (pe->offset >> mmc->block_dev.log2blksz), 
+	debug("load %s@0x%x to ram 0x%x\n", pe->name,
+		  offs_sector + (pe->offset >> mmc->block_dev.log2blksz),
 		  pe->ldaddr);
 
 	nblk = ROUND_UP(pe->size, mmc->block_dev.log2blksz);
 
-	err = mmc->block_dev.block_read(0, 
-		  offs_sector + (pe->offset >> mmc->block_dev.log2blksz), 
+	err = mmc->block_dev.block_read(0,
+		  offs_sector + (pe->offset >> mmc->block_dev.log2blksz),
 		  nblk, (void *)pe->ldaddr);
 	if (err < 0) {
 		printf("load packimg entry fail\n");
