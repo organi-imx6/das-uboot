@@ -115,7 +115,7 @@ int mmc_load_packimg_header(struct mmc *mmc, uint32_t offs_sector)
 	nblk = ROUND_UP(sizeof(*pe) + sizeof(*ph) * MAX_PACK_ENTRY, 
 					mmc->block_dev.log2blksz);
 
-	ret = mmc->block_dev.block_read(0, offs_sector, nblk, (char *)ph);
+	ret = mmc->block_dev.block_read(mmc->block_dev.dev, offs_sector, nblk, (char *)ph);
 	if (ret < 0) {
 		printf("%s: load head failed\n", __FUNCTION__);
 		return ret;
@@ -154,7 +154,7 @@ int mmc_load_packimg_entry(struct mmc *mmc, uint32_t offs_sector, struct pack_en
 
 	nblk = ROUND_UP(pe->size, mmc->block_dev.log2blksz);
 
-	err = mmc->block_dev.block_read(0,
+	err = mmc->block_dev.block_read(mmc->block_dev.dev,
 		  offs_sector + (pe->offset >> mmc->block_dev.log2blksz),
 		  nblk, (void *)pe->ldaddr);
 	if (err < 0) {
