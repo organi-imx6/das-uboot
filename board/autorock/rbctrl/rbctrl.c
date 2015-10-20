@@ -22,6 +22,7 @@
 #include <i2c.h>
 #include <nand.h>
 #include <packimg.h>
+#include <aes-packimg.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -153,11 +154,15 @@ int board_spi_cs_gpio(unsigned bus, unsigned cs)
 #if defined(CONFIG_SPL_BUILD)&&defined(CONFIG_BOOT_SPI)
 static int load_image_os(struct spi_flash *flash, struct image_header *header)
 {
+	init_aes();
 	nand_init();
 
 	/* load linux */
 	nand_spl_load_image(CONFIG_SYS_NAND_SPL_KERNEL_OFFS,
 		sizeof(*header), (void *)header);
+
+	aes_dec(header, sizeof(*header));
+
 	spl_parse_image_header(header);
 	if (header->ih_os == IH_OS_LINUX) {
 		/* happy - was a linux */
@@ -165,6 +170,7 @@ static int load_image_os(struct spi_flash *flash, struct image_header *header)
 
 		nand_spl_load_image(CONFIG_SYS_NAND_SPL_KERNEL_OFFS,
 			spl_image.size, (void *)spl_image.load_addr);
+		aes_dec(spl_image.load_addr, spl_image.size);
 
 		nand_deselect();
 		return 0;

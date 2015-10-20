@@ -1,6 +1,14 @@
 #ifndef __RBCTRL_COMMON_CONFIG_H
 #define __RBCTRL_COMMON_CONFIG_H
 
+#define CONFIG_SPL_PACKIMG
+#define CONFIG_PACKIMG
+
+#ifdef CONFIG_AES_PACKIMG
+#define CONFIG_AES
+#define CONFIG_MXC_OCOTP
+#endif
+
 #define CONFIG_FSL_CORENET
 
 #ifdef CONFIG_BOOT_MMC
@@ -175,6 +183,12 @@
 #define CONFIG_LOADADDR                0x12000000
 #define CONFIG_SYS_TEXT_BASE           0x17800000
 
+#ifdef CONFIG_AES_PACKIMG
+#define CMD_FLASH_KERNEL	"fl_kernel=encrypt ${loadaddr} ${filesize} && nand erase.part kernel && nand write ${loadaddr} kernel ${filesize}\0"
+#else
+#define CMD_FLASH_KERNEL	"fl_kernel=nand erase.part kernel && nand write ${loadaddr} kernel ${filesize}\0"
+#endif
+
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"image=" CONFIG_DEFAULT_KERNEL_FILE "\0" \
 	"fdt_file=" CONFIG_DEFAULT_FDT_FILE "\0" \
@@ -205,7 +219,7 @@
 	"fl_uboot=sf probe && sf update ${loadaddr} 0x10000 ${filesize}\0" \
     "fl_env=sf probe && sf update ${loadaddr} 0x88000 ${filesize}\0" \
 	"fl_packimg=sf probe && sf update ${loadaddr} 0xC0000 ${filesize}\0" \
-	"fl_kernel=nand erase.part kernel && nand write ${loadaddr} kernel ${filesize}\0" \
+	CMD_FLASH_KERNEL \
     "fl_rootfs=nand erase.part rootfs && " \
 	"  ubi part rootfs && " \
 	"  ubi create rootfs && " \
