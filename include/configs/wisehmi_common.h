@@ -194,7 +194,7 @@
 #define CONFIG_CMD_SETEXPR
 #undef CONFIG_CMD_IMLS
 
-#define CONFIG_BOOTDELAY               3
+#define CONFIG_BOOTDELAY               0
 
 #define CONFIG_LOADADDR                0x12000000
 #define CONFIG_SYS_TEXT_BASE           0x17800000
@@ -212,7 +212,7 @@
 	"serverip=172.10.11.15\0" \
 	"nfsroot=/home/yuq/tmp/rootfs\0" \
 	"console=" CONFIG_CONSOLE_DEV "\0" \
-	"mmcdev=0\0" \
+	"mmcdev=1\0" \
 	"mmcpart=1\0" \
 	"loadimage=" \
 		"mmc packimg 0x800 ${fdt_file} ${kernel_file} && " \
@@ -250,13 +250,16 @@
 	"burn_sf=tftp ${sffile} && sf probe && setexpr tmpvar ${filesize} + 0x400 && " \
 	"sf erase 0 +${tmpvar} && sf write ${loadaddr} 0x400 ${filesize}\0"
 
+#if 0
 #define CONFIG_BOOTCOMMAND \
 	"mmc dev ${mmcdev}; " \
 	"if run loadimage; then " \
 		"run mmcboot; " \
 	"fi; " \
-	"run netboot"
-
+	"run netboot"	
+#else
+#define CONFIG_BOOTCOMMAND "source 0x12000000"
+#endif
 #define CONFIG_ARP_TIMEOUT     200UL
 
 /* Miscellaneous configurable options */

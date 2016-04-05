@@ -94,6 +94,8 @@ endif
 obj-$(CONFIG_CMD_DISPLAY) += cmd_display.o
 obj-$(CONFIG_CMD_DTT) += cmd_dtt.o
 obj-$(CONFIG_CMD_ECHO) += cmd_echo.o
+# add for usb burn, by biansj 20121216
+obj-y += cmd_burn.o
 obj-$(CONFIG_ENV_IS_IN_EEPROM) += cmd_eeprom.o
 obj-$(CONFIG_CMD_EEPROM) += cmd_eeprom.o
 obj-$(CONFIG_CMD_ELF) += cmd_elf.o

@@ -3,6 +3,7 @@
 
 #define CONFIG_MACH_TYPE	3529
 #define CONFIG_MXC_UART_BASE	UART4_BASE
+#define CONFIG_MXC_UART_BURN	UART2_BASE
 #define CONFIG_CONSOLE_DEV		"ttymxc3"
 #if defined CONFIG_MX6Q
 #define CONFIG_DEFAULT_FDT_FILE	"imx6q-wisehmi.dtb"

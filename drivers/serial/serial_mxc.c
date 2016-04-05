@@ -222,3 +222,65 @@ __weak struct serial_device *default_serial_console(void)
 {
 	return &mxc_serial_drv;
 }
+
+// add for usb burn , config uart2 , by biansj 20121216
+#define UART_BURN	CONFIG_MXC_UART_BURN
+
+static void mxc_serial_burn_setbrg(void)
+{
+	u32 clk = imx_get_uartclk();
+
+	if (!gd->baudrate)
+		gd->baudrate = 115200;
+
+	__REG(UART_BURN + UFCR) = 4 << 7; /* divide input clock by 2 */
+	__REG(UART_BURN + UBIR) = 0xf;
+	__REG(UART_BURN + UBMR) = clk / (2 * gd->baudrate);
+
+}
+void mxc_serial_burn_putc(const char c)
+{
+	__REG(UART_BURN + UTXD) = c;
+
+	/* wait for transmitter to be ready */
+	while (!(__REG(UART_BURN + UTS) & UTS_TXEMPTY))
+		WATCHDOG_RESET();
+
+	/* If \n, also do \r */
+	if (c == '\n')
+		serial_putc ('\r');
+}
+static int mxc_serial_burn_init(void)
+{
+	__REG(UART_BURN + UCR1) = 0x0;
+	__REG(UART_BURN + UCR2) = 0x0;
+
+	while (!(__REG(UART_BURN + UCR2) & UCR2_SRST));
+
+	__REG(UART_BURN + UCR3) = 0x0704 | UCR3_ADNIMP;
+	__REG(UART_BURN + UCR4) = 0x8000;
+	__REG(UART_BURN + UESC) = 0x002b;
+	__REG(UART_BURN + UTIM) = 0x0;
+
+	__REG(UART_BURN + UTS) = 0x0;
+
+	mxc_serial_burn_setbrg();
+
+	__REG(UART_BURN + UCR2) = UCR2_WS | UCR2_IRTS | UCR2_RXEN | UCR2_TXEN | UCR2_SRST;
+
+	__REG(UART_BURN + UCR1) = UCR1_UARTEN;
+
+	return 0;
+}
+
+void mxc_serial_burn_putCmd(const char *s, int len)
+{
+	int i = 0;
+	mxc_serial_burn_init();
+
+	for(i = 0; i < len; i++)
+	{	
+		mxc_serial_burn_putc(*s++);
+	}
+}
+
