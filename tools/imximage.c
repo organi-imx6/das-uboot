@@ -12,7 +12,7 @@
 #include "imagetool.h"
 #include <image.h>
 #include "imximage.h"
-
+#define CONFIG_USE_PLUGIN
 #define UNDEFINED 0xFFFFFFFF
 
 /*
@@ -24,6 +24,9 @@ static table_entry_t imximage_cmds[] = {
 	{CMD_DATA,              "DATA",                 "Reg Write Data", },
 	{CMD_CSF,               "CSF",           "Command Sequence File", },
 	{CMD_IMAGE_VERSION,     "IMAGE_VERSION",        "image version",  },
+#ifdef CONFIG_USE_PLUGIN
+        {CMD_PLUGIN,            "PLUGIN",               "file plugin_addr"},
+#endif
 	{-1,                    "",                     "",	          },
 };
 
@@ -81,7 +84,9 @@ static set_dcd_rst_t set_dcd_rst;
 static set_imx_hdr_t set_imx_hdr;
 static uint32_t max_dcd_entries;
 static uint32_t *header_size_ptr;
+static uint32_t imximage_iram_free_start;
 static uint32_t *csf_ptr;
+static uint32_t imximage_plugin_size;
 
 static uint32_t get_cfg_value(char *token, char *name,  int linenr)
 {
@@ -342,6 +347,45 @@ static void print_hdr_v2(struct imx_header *imx_hdr)
 	}
 }
 
+#ifdef CONFIG_USE_PLUGIN
+static void copy_plugin_code(struct imx_header *imxhdr, char *plugin_file)
+{
+	int ifd = -1;
+	struct stat sbuf;
+	char *plugin_buf = imxhdr->header.hdr_v2.data.plugin_code;
+	char *ptr;
+
+	ifd = open(plugin_file, O_RDONLY|O_BINARY);
+	if (fstat(ifd, &sbuf) < 0) {
+		fprintf(stderr, "Can't stat %s: %s\n",
+			plugin_file,
+			strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	ptr = mmap(0, sbuf.st_size, PROT_READ, MAP_SHARED, ifd, 0);
+	if (ptr == MAP_FAILED) {
+		fprintf(stderr, "Can't read %s: %s\n",
+			plugin_file,
+			strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	if (sbuf.st_size > MAX_PLUGIN_CODE_SIZE) {
+		printf("plugin binary size too large\n");
+		exit(EXIT_FAILURE);
+	}
+
+	memcpy(plugin_buf, ptr, sbuf.st_size);
+	imximage_plugin_size = sbuf.st_size;
+
+	(void) munmap((void *)ptr, sbuf.st_size);
+	(void) close(ifd);
+
+	imxhdr->header.hdr_v2.boot_data.plugin = 1;
+}
+#endif
+
 static void parse_cfg_cmd(struct imx_header *imxhdr, int32_t cmd, char *token,
 				char *name, int lineno, int fld, int dcd_len)
 {
@@ -411,6 +455,11 @@ static void parse_cfg_cmd(struct imx_header *imxhdr, int32_t cmd, char *token,
 		if (unlikely(cmd_ver_first != 1))
 			cmd_ver_first = 0;
 		break;
+#ifdef  CONFIG_USE_PLUGIN
+        case CMD_PLUGIN:
+                copy_plugin_code(imxhdr,token);
+                break;
+#endif
 	}
 }
 
@@ -450,6 +499,14 @@ static void parse_cfg_fld(struct imx_header *imxhdr, int32_t *cmd,
 			}
 		}
 		break;
+        
+#ifdef  CONFIG_USE_PLUGIN
+
+                case    CMD_PLUGIN:
+                                value = get_cfg_value(token,name,lineno);
+                                imximage_iram_free_start = value;
+                                break;
+#endif
 	default:
 		break;
 	}

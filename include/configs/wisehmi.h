@@ -17,7 +17,7 @@
 #define PHYS_SDRAM_SIZE		(CONFIG_DDR_MB * 1024 * 1024)
 
 #define CONFIG_IMAGE_FORMAT_LEGACY
-
+#define CONFIG_USE_PLUGIN
 #include "wisehmi_common.h"
 
 #endif /* __WISEHMI_CONFIG_H */
