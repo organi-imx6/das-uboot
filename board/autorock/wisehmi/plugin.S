@@ -261,15 +261,16 @@
 	str r2, [r1, #0x80c]
 	str r2, [r1, #0x810]
 
-	ldr r2, =0x42190217
+	ldr r2, =0x42190217 
 	str r2, [r0, #0x83c]
 
 
 	ldr r2, =0x017B017B
 	str r2, [r0, #0x840]
-	str r2, [r0, #0x83c]
 
 
+	ldr r2, =0x4176017B
+	str r2, [r1, #0x83c]
 	ldr r2, =0x015F016C
 	str r2, [r1, #0x840]
 
@@ -279,8 +280,9 @@
 
 
 	ldr r2, =0x4A4D4C48
-	str r2, [r0, #0x848]
-
+	str r2, [r1, #0x848]
+      
+	
 
 
 
@@ -340,7 +342,7 @@
 	str r2, [r0, #0x02c]
 
 
-	ldr r2, =0x00431023
+	ldr r2, =0x006b1023
 	str r2, [r0, #0x030]
 
 
@@ -523,11 +525,11 @@
 	str r1, [r0, #0x070]
 	ldr r1, =0x3FF00000
 	str r1, [r0, #0x074]
-	ldr r1, =0x00FFF300
+	ldr r1, =0xFFFFF300
 	str r1, [r0, #0x078]
 	ldr r1, =0x0F0000C3
 	str r1, [r0, #0x07c]
-	ldr r1, =0x000003FF
+	ldr r1, =0x00000FFF
 	str r1, [r0, #0x080]
 	
 	 /* Init the DDR according the init script */
