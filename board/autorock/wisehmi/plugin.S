@@ -259,10 +259,10 @@
     ldr r1, [r0,#0x30]
     orr r1, r1, #0x0001
 
-    ldr r1, =0x00000960  //0x00001770 0x0000059E(30Mhz spectrum spread range)  0x00001c18 (6Mhz)
+    ldr r1, =0x00001770  //0x00001770 0x0000059E(30Mhz spectrum spread range)  0x00001c18 (6Mhz)
     str r1, [r0,#0x60] 
     
-    ldr r1, =0x0bb88006  //0x05dc8006 0x0bb88006(24kHz) , 0x07068006(40Khz)
+    ldr r1, =0x05dc8006  //0x05dc8006 0x0bb88006(24kHz) , 0x07068006(40Khz)
     str r1, [r0,#0x40] 
 
 /*
