@@ -72,7 +72,6 @@ dumpimage-mkimage-objs := aisimage.o \
 			lib/fdtdec_common.o \
 			lib/fdtdec.o \
 			fit_common.o \
-			fit_image.o \
 			gpimage.o \
 			gpimage-common.o \
 			common/image-fit.o \
