@@ -142,4 +142,4 @@ app_code_csf2:          .long 0x0
 reserv4:                .long 0x0
 boot_data2:             .long 0x0
 image_len2:             .long 0x0
-plugin2:                .long 0x1
+plugin2:                .long 0x0
