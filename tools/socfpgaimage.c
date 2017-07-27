@@ -33,8 +33,6 @@
 
 #include "pbl_crc32.h"
 #include "imagetool.h"
-#include "mkimage.h"
-
 #include <image.h>
 
 #define HEADER_OFFSET	0x40
@@ -76,12 +74,12 @@ static uint16_t hdr_checksum(struct socfpga_header *header)
 static void build_header(uint8_t *buf, uint8_t version, uint8_t flags,
 			 uint16_t length_bytes)
 {
-	header.validation = cpu_to_le32(VALIDATION_WORD);
+	header.validation = htole32(VALIDATION_WORD);
 	header.version = version;
 	header.flags = flags;
-	header.length_u32 = cpu_to_le16(length_bytes/4);
+	header.length_u32 = htole16(length_bytes/4);
 	header.zero = 0;
-	header.checksum = cpu_to_le16(hdr_checksum(&header));
+	header.checksum = htole16(hdr_checksum(&header));
 
 	memcpy(buf, &header, sizeof(header));
 }
@@ -94,12 +92,12 @@ static int verify_header(const uint8_t *buf)
 {
 	memcpy(&header, buf, sizeof(header));
 
-	if (le32_to_cpu(header.validation) != VALIDATION_WORD)
+	if (le32toh(header.validation) != VALIDATION_WORD)
 		return -1;
-	if (le16_to_cpu(header.checksum) != hdr_checksum(&header))
+	if (le16toh(header.checksum) != hdr_checksum(&header))
 		return -1;
 
-	return le16_to_cpu(header.length_u32) * 4;
+	return le16toh(header.length_u32) * 4;
 }
 
 /* Sign the buffer and return the signed buffer size */
@@ -118,7 +116,7 @@ static int sign_buffer(uint8_t *buf,
 	/* Calculate and apply the CRC */
 	calc_crc = ~pbl_crc32(0, (char *)buf, len);
 
-	*((uint32_t *)(buf + len)) = cpu_to_le32(calc_crc);
+	*((uint32_t *)(buf + len)) = htole32(calc_crc);
 
 	if (!pad_64k)
 		return len + 4;
@@ -135,12 +133,12 @@ static int verify_buffer(const uint8_t *buf)
 
 	len = verify_header(buf + HEADER_OFFSET);
 	if (len < 0) {
-		debug("Invalid header\n");
+		fprintf(stderr, "Invalid header\n");
 		return -1;
 	}
 
 	if (len < HEADER_OFFSET || len > PADDED_SIZE) {
-		debug("Invalid header length (%i)\n", len);
+		fprintf(stderr, "Invalid header length (%i)\n", len);
 		return -1;
 	}
 
@@ -152,7 +150,7 @@ static int verify_buffer(const uint8_t *buf)
 
 	calc_crc = ~pbl_crc32(0, (const char *)buf, len);
 
-	buf_crc = le32_to_cpu(*((uint32_t *)(buf + len)));
+	buf_crc = le32toh(*((uint32_t *)(buf + len)));
 
 	if (buf_crc != calc_crc) {
 		fprintf(stderr, "CRC32 does not match (%08x != %08x)\n",
@@ -243,17 +241,19 @@ static void socfpgaimage_set_header(void *ptr, struct stat *sbuf, int ifd,
 	sign_buffer(buf, 0, 0, data_size, 0);
 }
 
-U_BOOT_IMAGE_TYPE(
-	socfpgaimage,
-	"Altera SOCFPGA preloader support",
-	0, /* This will be modified by vrec_header() */
-	(void *)buffer,
-	socfpgaimage_check_params,
-	socfpgaimage_verify_header,
-	socfpgaimage_print_header,
-	socfpgaimage_set_header,
-	NULL,
-	socfpgaimage_check_image_types,
-	NULL,
-	socfpgaimage_vrec_header
-);
+static struct image_type_params socfpgaimage_params = {
+	.name		= "Altera SOCFPGA preloader support",
+	.vrec_header	= socfpgaimage_vrec_header,
+	.header_size	= 0, /* This will be modified by vrec_header() */
+	.hdr		= (void *)buffer,
+	.check_image_type = socfpgaimage_check_image_types,
+	.verify_header	= socfpgaimage_verify_header,
+	.print_header	= socfpgaimage_print_header,
+	.set_header	= socfpgaimage_set_header,
+	.check_params	= socfpgaimage_check_params,
+};
+
+void init_socfpga_image_type(void)
+{
+	register_image_type(&socfpgaimage_params);
+}

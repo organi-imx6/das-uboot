@@ -6,7 +6,7 @@
  * Marvell Semiconductor <www.marvell.com>
  * Written-by: Prafulla Wadaskar <prafulla@marvell.com>
  *
- * Copyright (C) 2014-2015 Freescale Semiconductor, Inc.
+ * Copyright (C) 2014 Freescale Semiconductor, Inc.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -24,9 +24,6 @@ static table_entry_t imximage_cmds[] = {
 	{CMD_BOOT_FROM,         "BOOT_FROM",            "boot command",	  },
 	{CMD_BOOT_OFFSET,       "BOOT_OFFSET",          "Boot offset",	  },
 	{CMD_DATA,              "DATA",                 "Reg Write Data", },
-	{CMD_CLR_BIT,           "CLR_BIT",              "Reg clear bit",  },
-	{CMD_CHECK_BITS_SET,    "CHECK_BITS_SET",       "Reg Check bits set", },
-	{CMD_CHECK_BITS_CLR,    "CHECK_BITS_CLR",       "Reg Check bits clr", },
 	{CMD_CSF,               "CSF",           "Command Sequence File", },
 	{CMD_IMAGE_VERSION,     "IMAGE_VERSION",        "image version",  },
 #ifdef CONFIG_USE_PLUGIN
@@ -46,7 +43,7 @@ static table_entry_t imximage_boot_offset[] = {
 	{FLASH_OFFSET_SATA,	"sata",		"SATA Disk",	},
 	{FLASH_OFFSET_SD,	"sd",		"SD Card",	},
 	{FLASH_OFFSET_SPI,	"spi",		"SPI Flash",	},
-	{FLASH_OFFSET_QSPI,	"qspi",		"QSPI NOR Flash",},
+	{FLASH_OFFSET_QSPI, "qspi",     "QSPI Flash",   },
 	{-1,			"",		"Invalid",	},
 };
 
@@ -61,7 +58,7 @@ static table_entry_t imximage_boot_loadsize[] = {
 	{FLASH_LOADSIZE_SATA,		"sata",		"SATA Disk",	},
 	{FLASH_LOADSIZE_SD,		"sd",		"SD Card",	},
 	{FLASH_LOADSIZE_SPI,		"spi",		"SPI Flash",	},
-	{FLASH_LOADSIZE_QSPI,		"qspi",		"QSPI NOR Flash",},
+	{FLASH_LOADSIZE_QSPI,		"qspi",		"QSPI Flash",	},
 	{-1,				"",		"Invalid",	},
 };
 
@@ -94,7 +91,6 @@ static set_imx_hdr_t set_imx_hdr;
 static uint32_t max_dcd_entries;
 static uint32_t *header_size_ptr;
 static uint32_t *csf_ptr;
-static uint32_t dataindex;
 
 static uint32_t get_cfg_value(char *token, char *name,  int linenr)
 {
@@ -144,7 +140,7 @@ static void err_imximage_version(int version)
 }
 
 static void set_dcd_val_v1(struct imx_header *imxhdr, char *name, int lineno,
-			   int fld, int cmd, uint32_t value, uint32_t off)
+					int fld, uint32_t value, uint32_t off)
 {
 	dcd_v1_t *dcd_v1 = &imxhdr->header.hdr_v1.dcd_table;
 
@@ -172,47 +168,16 @@ static void set_dcd_val_v1(struct imx_header *imxhdr, char *name, int lineno,
 }
 
 static void set_dcd_val_v2(struct imx_header *imxhdr, char *name, int lineno,
-			   int fld, int cmd, uint32_t value, uint32_t off)
+					int fld, uint32_t value, uint32_t off)
 {
 	dcd_v2_t *dcd_v2 = &imxhdr->header.hdr_v2.data.dcd_table;
-	dcd_command_t *dcd_command_block = (dcd_command_t *)&
-					    dcd_v2->dcd_data[dataindex];
 
 	switch (fld) {
-	case CFG_COMMAND:
-		/* update header */
-		if (cmd == CMD_DATA) {
-			dcd_command_block->tag = DCD_WRITE_DATA_COMMAND_TAG;
-			dcd_command_block->length = cpu_to_be16(off *
-					sizeof(dcd_addr_data_t) + 4);
-			dcd_command_block->param = DCD_WRITE_DATA_PARAM;
-		} else if (cmd == CMD_CLR_BIT) {
-			dcd_command_block->tag = DCD_WRITE_DATA_COMMAND_TAG;
-			dcd_command_block->length = cpu_to_be16(off *
-					sizeof(dcd_addr_data_t) + 4);
-			dcd_command_block->param = DCD_CLR_BIT_PARAM;
-		} else if (cmd == CMD_CHECK_BITS_SET) {
-			dcd_command_block->tag = DCD_CHECK_DATA_COMMAND_TAG;
-			/*
-			 * check data command only supports one entry,
-			 * so use 0xC = size(address + value + command).
-			 */
-			dcd_command_block->length = cpu_to_be16(0xC);
-			dcd_command_block->param = DCD_CHECK_BITS_SET_PARAM;
-		} else if (cmd == CMD_CHECK_BITS_CLR) {
-			dcd_command_block->tag = DCD_CHECK_DATA_COMMAND_TAG;
-			/*
-			 * check data command only supports one entry,
-			 * so use 0xC = size(address + value + command).
-			 */
-			dcd_command_block->length = cpu_to_be16(0xC);
-			dcd_command_block->param = DCD_CHECK_BITS_CLR_PARAM;
-		}
 	case CFG_REG_ADDRESS:
-		dcd_command_block->addr_data[off].addr = cpu_to_be32(value);
+		dcd_v2->addr_data[off].addr = cpu_to_be32(value);
 		break;
 	case CFG_REG_VALUE:
-		dcd_command_block->addr_data[off].value = cpu_to_be32(value);
+		dcd_v2->addr_data[off].value = cpu_to_be32(value);
 		break;
 	default:
 		break;
@@ -244,14 +209,13 @@ static void set_dcd_rst_v2(struct imx_header *imxhdr, uint32_t dcd_len,
 		dcd_v2_t *dcd_v2 = &imxhdr->header.hdr_v2.data.dcd_table;
 
 		dcd_v2->header.tag = DCD_HEADER_TAG;
-		/*
-		 * dataindex does not contain the last dcd block,
-		 * see how dataindex is updated.
-		 */
 		dcd_v2->header.length = cpu_to_be16(
-				(dataindex + 1) * 4 + dcd_len *
-				sizeof(dcd_addr_data_t) + 4);
+				dcd_len * sizeof(dcd_addr_data_t) + 8);
 		dcd_v2->header.version = DCD_VERSION;
+		dcd_v2->write_dcd_command.tag = DCD_COMMAND_TAG;
+		dcd_v2->write_dcd_command.length = cpu_to_be16(
+				dcd_len * sizeof(dcd_addr_data_t) + 4);
+		dcd_v2->write_dcd_command.param = DCD_COMMAND_PARAM;
 	}
 }
 
@@ -300,11 +264,7 @@ static void set_imx_hdr_v2(struct imx_header *imxhdr, uint32_t dcd_len,
 		hdr_base = entry_point - imximage_init_loadsize +
 			flash_offset;
 		fhdr_v2->self = hdr_base;
-		if (dcd_len > 0)
-			fhdr_v2->dcd_ptr = hdr_base +
-				offsetof(imx_header_v2_t, data);
-		else
-			fhdr_v2->dcd_ptr = 0;
+		fhdr_v2->dcd_ptr = hdr_base + offsetof(imx_header_v2_t, data);
 		fhdr_v2->boot_data_ptr = hdr_base
 				+ offsetof(imx_header_v2_t, boot_data);
 		hdr_v2->boot_data.start = entry_point - imximage_init_loadsize;
@@ -585,7 +545,7 @@ static void parse_cfg_cmd(struct imx_header *imxhdr, int32_t cmd, char *token,
 		break;
 	case CMD_DATA:
 		value = get_cfg_value(token, name, lineno);
-		(*set_dcd_val)(imxhdr, name, lineno, fld, cmd, value, dcd_len);
+		(*set_dcd_val)(imxhdr, name, lineno, fld, value, dcd_len);
 		if (unlikely(cmd_ver_first != 1))
 			cmd_ver_first = 0;
 		break;
@@ -609,8 +569,7 @@ static void parse_cfg_cmd(struct imx_header *imxhdr, int32_t cmd, char *token,
 }
 
 static void parse_cfg_fld(struct imx_header *imxhdr, int32_t *cmd,
-			  int32_t *precmd, char *token, char *name,
-			  int lineno, int fld, int *dcd_len)
+		char *token, char *name, int lineno, int fld, int *dcd_len)
 {
 	int value;
 
@@ -623,30 +582,6 @@ static void parse_cfg_fld(struct imx_header *imxhdr, int32_t *cmd,
 			"(%s)\n", name, lineno, token);
 			exit(EXIT_FAILURE);
 		}
-
-		if ((*precmd == CMD_DATA) || (*precmd == CMD_CLR_BIT) ||
-		    (*precmd == CMD_CHECK_BITS_SET) ||
-		    (*precmd == CMD_CHECK_BITS_CLR)) {
-			if (*cmd != *precmd) {
-				dataindex += ((*dcd_len) *
-					      sizeof(dcd_addr_data_t) + 4) >> 2;
-				*dcd_len = 0;
-			}
-		}
-
-		if ((*cmd == CMD_DATA) || (*cmd == CMD_CLR_BIT) ||
-		    (*cmd == CMD_CHECK_BITS_SET) ||
-		    (*cmd == CMD_CHECK_BITS_CLR)) {
-			/*
-			 * Reserve the first entry for command header,
-			 * So use *dcd_len + 1 as the off.
-			 */
-			(*set_dcd_val)(imxhdr, name, lineno, fld,
-				       *cmd, 0, *dcd_len + 1);
-		}
-
-		*precmd = *cmd;
-
 		break;
 	case CFG_REG_SIZE:
 		parse_cfg_cmd(imxhdr, *cmd, token, name, lineno, fld, *dcd_len);
@@ -654,12 +589,9 @@ static void parse_cfg_fld(struct imx_header *imxhdr, int32_t *cmd,
 	case CFG_REG_ADDRESS:
 	case CFG_REG_VALUE:
 		switch (*cmd) {
-		case CMD_CHECK_BITS_SET:
-		case CMD_CHECK_BITS_CLR:
 		case CMD_DATA:
-		case CMD_CLR_BIT:
 			value = get_cfg_value(token, name, lineno);
-			(*set_dcd_val)(imxhdr, name, lineno, fld, *cmd, value,
+			(*set_dcd_val)(imxhdr, name, lineno, fld, value,
 					*dcd_len);
 
 			if (fld == CFG_REG_VALUE) {
@@ -696,7 +628,7 @@ static uint32_t parse_cfg_file(struct imx_header *imxhdr, char *name)
 	int fld;
 	size_t len;
 	int dcd_len = 0;
-	int32_t cmd, precmd = CMD_INVALID;
+	int32_t cmd;
 
 	fd = fopen(name, "r");
 	if (fd == 0) {
@@ -704,7 +636,6 @@ static uint32_t parse_cfg_file(struct imx_header *imxhdr, char *name)
 		exit(EXIT_FAILURE);
 	}
 
-	dataindex = 0;
 	/*
 	 * Very simple parsing, line starting with # are comments
 	 * and are dropped
@@ -727,8 +658,8 @@ static uint32_t parse_cfg_file(struct imx_header *imxhdr, char *name)
 			if (token[0] == '#')
 				break;
 
-			parse_cfg_fld(imxhdr, &cmd, &precmd, token, name,
-				      lineno, fld, &dcd_len);
+			parse_cfg_fld(imxhdr, &cmd, token, name,
+					lineno, fld, &dcd_len);
 		}
 
 	}
@@ -928,17 +859,19 @@ static int imximage_generate(struct image_tool_params *params,
 /*
  * imximage parameters
  */
-U_BOOT_IMAGE_TYPE(
-	imximage,
-	"Freescale i.MX Boot Image support",
-	0,
-	NULL,
-	imximage_check_params,
-	imximage_verify_header,
-	imximage_print_header,
-	imximage_set_header,
-	NULL,
-	imximage_check_image_types,
-	NULL,
-	imximage_generate
-);
+static struct image_type_params imximage_params = {
+	.name		= "Freescale i.MX Boot Image support",
+	.header_size	= 0,
+	.hdr		= NULL,
+	.check_image_type = imximage_check_image_types,
+	.verify_header	= imximage_verify_header,
+	.print_header	= imximage_print_header,
+	.set_header	= imximage_set_header,
+	.check_params	= imximage_check_params,
+	.vrec_header	= imximage_generate,
+};
+
+void init_imx_image_type(void)
+{
+	register_image_type(&imximage_params);
+}
